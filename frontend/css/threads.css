@@ -1,0 +1,285 @@
+/* スレッド関連のスタイル - 未経験者が編集可能 */
+
+.page-header {
+  background-color: #fff;
+  padding: 2rem 0;
+  margin-bottom: 2rem;
+}
+
+.page-title {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+  color: #333;
+}
+
+/* フィルター */
+.filter-bar {
+  background-color: #fff;
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.filter-group {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.filter-label {
+  font-weight: 500;
+  color: #333;
+}
+
+.filter-select {
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+/* スレッド一覧 */
+.threads-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.thread-card {
+  background-color: #fff;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.3s;
+  cursor: pointer;
+}
+
+.thread-card:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.thread-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.75rem;
+}
+
+.thread-title {
+  font-size: 1.3rem;
+  color: #1a73e8;
+  text-decoration: none;
+  margin: 0;
+}
+
+.thread-title:hover {
+  text-decoration: underline;
+}
+
+.thread-status {
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.status-open {
+  background-color: #e3f2fd;
+  color: #1976d2;
+}
+
+.status-resolved {
+  background-color: #e8f5e9;
+  color: #388e3c;
+}
+
+.thread-content {
+  color: #666;
+  margin-bottom: 1rem;
+  line-height: 1.6;
+}
+
+.thread-meta {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.thread-tag {
+  background-color: #f5f5f5;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+}
+
+.thread-info {
+  display: flex;
+  gap: 1rem;
+}
+
+.thread-author,
+.thread-date,
+.thread-answers-count {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* スレッド詳細 */
+.thread-detail {
+  background-color: #fff;
+  padding: 2rem;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.thread-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.thread-detail-title {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+  color: #333;
+}
+
+.thread-detail-content {
+  font-size: 1.1rem;
+  line-height: 1.8;
+  margin-bottom: 1.5rem;
+  white-space: pre-wrap;
+}
+
+.thread-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+/* 回答セクション */
+.answers-section {
+  margin-top: 2rem;
+}
+
+.answers-header {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  color: #333;
+}
+
+.answer-card {
+  background-color: #fff;
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.answer-card.best-answer {
+  border: 2px solid #4caf50;
+  background-color: #f1f8f4;
+}
+
+.answer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.answer-author-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.best-answer-badge {
+  background-color: #4caf50;
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.answer-content {
+  font-size: 1rem;
+  line-height: 1.6;
+  margin-bottom: 1rem;
+  white-space: pre-wrap;
+}
+
+.answer-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.answer-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* 回答フォーム */
+.answer-form {
+  background-color: #fff;
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-top: 2rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.answer-form-title {
+  font-size: 1.3rem;
+  margin-bottom: 1rem;
+  color: #333;
+}
+
+/* 空状態 */
+.empty-state {
+  text-align: center;
+  padding: 3rem;
+  color: #666;
+}
+
+.empty-state-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.empty-state-message {
+  font-size: 1.1rem;
+}
+
+/* レスポンシブ */
+@media (max-width: 768px) {
+  .thread-header {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .thread-meta {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: flex-start;
+  }
+
+  .filter-group {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-select {
+    width: 100%;
+  }
+}

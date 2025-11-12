@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>学生知恵袋 - トップページ</title>
+  <link rel="stylesheet" href="css/common.css">
+  <link rel="stylesheet" href="css/threads.css">
+</head>
+<body>
+  <header>
+    <div class="container">
+      <div class="header-content">
+        <a href="index.html" class="logo">学生知恵袋</a>
+
+        <nav>
+          <!-- ログイン済み -->
+          <div class="logged-in" style="display: none;">
+            <span id="user-info"></span>
+            <a href="new-thread.html" class="btn-primary">質問する</a>
+            <a href="#" id="logout-button">ログアウト</a>
+          </div>
+
+          <!-- 未ログイン -->
+          <div class="logged-out">
+            <a href="login.html">ログイン</a>
+            <a href="signup.html" class="btn-primary">アカウント作成</a>
+          </div>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="page-header">
+      <h1 class="page-title">質問一覧</h1>
+    </div>
+
+    <!-- フィルターバー -->
+    <div class="filter-bar">
+      <div class="filter-group">
+        <label class="filter-label">ステータス:</label>
+        <select id="status-filter" class="filter-select">
+          <option value="">すべて</option>
+          <option value="open">未解決</option>
+          <option value="resolved">解決済み</option>
+        </select>
+
+        <label class="filter-label">科目:</label>
+        <select id="subject-filter" class="filter-select">
+          <option value="">すべて</option>
+          <!-- 科目タグはJavaScriptで動的に追加 -->
+        </select>
+
+        <label class="filter-label">並び順:</label>
+        <select id="sort-filter" class="filter-select">
+          <option value="created_at">投稿日時</option>
+          <option value="updated_at">更新日時</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- エラーメッセージ -->
+    <div id="error-message" class="error-message"></div>
+
+    <!-- ローディング -->
+    <div id="loading" class="loading">
+      <div class="spinner"></div>
+    </div>
+
+    <!-- スレッド一覧 -->
+    <div id="threads-list" class="threads-list">
+      <!-- スレッドカードがJavaScriptで動的に追加される -->
+    </div>
+
+    <!-- 空状態 -->
+    <div id="empty-state" class="empty-state" style="display: none;">
+      <div class="empty-state-icon">📝</div>
+      <p class="empty-state-message">質問がありません</p>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>&copy; 2024 学生知恵袋. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <!-- JavaScript -->
+  <script src="js/api.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    // ページ読み込み時の処理
+    let currentFilters = {};
+
+    async function loadThreads() {
+      try {
+        showLoading();
+        hideElement('#empty-state');
+
+        const threads = await fetchThreads(currentFilters);
+
+        hideLoading();
+
+        if (threads.length === 0) {
+          showElement('#empty-state');
+          return;
+        }
+
+        renderThreads(threads);
+      } catch (error) {
+        hideLoading();
+        showError(error.message || 'スレッドの読み込みに失敗しました');
+      }
+    }
+
+    function renderThreads(threads) {
+      const container = document.getElementById('threads-list');
+      container.innerHTML = '';
+
+      threads.forEach(thread => {
+        const card = createThreadCard(thread);
+        container.appendChild(card);
+      });
+    }
+
+    function createThreadCard(thread) {
+      const card = document.createElement('div');
+      card.className = 'thread-card';
+      card.onclick = () => navigateTo(`thread.html?id=${thread.id}`);
+
+      const statusClass = thread.status === 'open' ? 'status-open' : 'status-resolved';
+      const statusText = thread.status === 'open' ? '未解決' : '解決済み';
+
+      card.innerHTML = `
+        <div class="thread-header">
+          <h2 class="thread-title">${escapeHtml(thread.title)}</h2>
+          <span class="thread-status ${statusClass}">${statusText}</span>
+        </div>
+        <p class="thread-content">${escapeHtml(thread.content.substring(0, 150))}${thread.content.length > 150 ? '...' : ''}</p>
+        <div class="thread-meta">
+          <span class="thread-tag">${escapeHtml(thread.subject_tag?.name || '')}</span>
+          <div class="thread-info">
+            <span class="thread-author">投稿者: ${escapeHtml(thread.user?.display_name || thread.user?.email || '')}</span>
+            <span class="thread-date">${timeAgo(thread.created_at)}</span>
+            <span class="thread-answers-count">回答: ${thread.answers_count || 0}件</span>
+          </div>
+        </div>
+      `;
+
+      return card;
+    }
+
+    async function loadSubjectTags() {
+      try {
+        const tags = await fetchSubjectTags();
+        const select = document.getElementById('subject-filter');
+
+        tags.forEach(tag => {
+          const option = document.createElement('option');
+          option.value = tag.id;
+          option.textContent = tag.name;
+          select.appendChild(option);
+        });
+      } catch (error) {
+        console.error('Failed to load subject tags:', error);
+      }
+    }
+
+    // フィルター変更時の処理
+    document.getElementById('status-filter').addEventListener('change', (e) => {
+      currentFilters.status = e.target.value || undefined;
+      loadThreads();
+    });
+
+    document.getElementById('subject-filter').addEventListener('change', (e) => {
+      currentFilters.subject_tag_id = e.target.value ? parseInt(e.target.value) : undefined;
+      loadThreads();
+    });
+
+    document.getElementById('sort-filter').addEventListener('change', (e) => {
+      currentFilters.sort = e.target.value;
+      loadThreads();
+    });
+
+    // 初期読み込み
+    document.addEventListener('DOMContentLoaded', () => {
+      loadSubjectTags();
+      loadThreads();
+    });
+  </script>
+</body>
+</html>

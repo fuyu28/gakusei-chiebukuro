@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>質問を投稿 - 学生知恵袋</title>
+  <link rel="stylesheet" href="css/common.css">
+  <link rel="stylesheet" href="css/forms.css">
+</head>
+<body>
+  <header>
+    <div class="container">
+      <div class="header-content">
+        <a href="index.html" class="logo">学生知恵袋</a>
+
+        <nav>
+          <span id="user-info"></span>
+          <a href="index.html">トップページ</a>
+          <a href="#" id="logout-button">ログアウト</a>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="form-container" style="max-width: 800px;">
+      <h1 class="form-title">質問を投稿</h1>
+
+      <!-- エラーメッセージ -->
+      <div id="error-message" class="error-message"></div>
+
+      <!-- 成功メッセージ -->
+      <div id="success-message" class="success-message"></div>
+
+      <!-- ローディング -->
+      <div id="loading" class="loading">
+        <div class="spinner"></div>
+      </div>
+
+      <!-- スレッド作成フォーム -->
+      <form id="thread-form">
+        <div class="form-group">
+          <label for="title" class="form-label">タイトル</label>
+          <input
+            type="text"
+            id="title"
+            class="form-input"
+            placeholder="質問のタイトルを入力してください"
+            maxlength="200"
+            required
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="content" class="form-label">質問内容</label>
+          <textarea
+            id="content"
+            class="form-textarea"
+            placeholder="質問の詳細を入力してください"
+            required
+          ></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="subject-tag" class="form-label">科目</label>
+          <select id="subject-tag" class="form-select" required>
+            <option value="">科目を選択してください</option>
+            <!-- 科目タグはJavaScriptで動的に追加 -->
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="deadline" class="form-label">回答締切（任意）</label>
+          <input
+            type="datetime-local"
+            id="deadline"
+            class="form-input"
+          >
+          <p class="form-hint">締切を設定すると、その日時以降は回答できなくなります</p>
+        </div>
+
+        <button type="submit" class="form-button">投稿する</button>
+      </form>
+
+      <div class="form-link">
+        <a href="index.html">← トップページに戻る</a>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>&copy; 2024 学生知恵袋. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <!-- JavaScript -->
+  <script src="js/api.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    // 認証チェック
+    requireAuth();
+
+    // 科目タグを読み込み
+    async function loadSubjectTags() {
+      try {
+        const tags = await fetchSubjectTags();
+        const select = document.getElementById('subject-tag');
+
+        tags.forEach(tag => {
+          const option = document.createElement('option');
+          option.value = tag.id;
+          option.textContent = tag.name;
+          select.appendChild(option);
+        });
+      } catch (error) {
+        showError('科目タグの読み込みに失敗しました');
+      }
+    }
+
+    // フォーム送信処理
+    async function handleThreadSubmit(event) {
+      event.preventDefault();
+
+      const title = document.getElementById('title').value;
+      const content = document.getElementById('content').value;
+      const subject_tag_id = parseInt(document.getElementById('subject-tag').value);
+      const deadlineInput = document.getElementById('deadline').value;
+
+      // バリデーション
+      if (!title || !content || !subject_tag_id) {
+        showError('すべての必須項目を入力してください');
+        return;
+      }
+
+      // 締切をISO8601形式に変換
+      let deadline = undefined;
+      if (deadlineInput) {
+        deadline = new Date(deadlineInput).toISOString();
+      }
+
+      try {
+        showLoading();
+
+        const thread = await createThread({
+          title,
+          content,
+          subject_tag_id,
+          deadline,
+        });
+
+        hideLoading();
+        showSuccess('質問を投稿しました');
+
+        // スレッド詳細ページへ遷移
+        setTimeout(() => {
+          navigateTo(`thread.html?id=${thread.id}`);
+        }, 1000);
+      } catch (error) {
+        hideLoading();
+        showError(error.message || '投稿に失敗しました');
+      }
+    }
+
+    // 初期化
+    document.addEventListener('DOMContentLoaded', () => {
+      loadSubjectTags();
+      document.getElementById('thread-form').addEventListener('submit', handleThreadSubmit);
+    });
+  </script>
+</body>
+</html>
