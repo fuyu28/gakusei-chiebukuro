@@ -9,12 +9,19 @@
     "start": "node dist/index.js",
     "type-check": "tsc --noEmit"
   },
-  "keywords": ["hono", "typescript", "supabase", "q&a"],
+  "keywords": [
+    "hono",
+    "typescript",
+    "supabase",
+    "q&a"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@hono/node-server": "^1.19.6",
     "@hono/zod-validator": "^0.2.1",
     "@supabase/supabase-js": "^2.39.3",
+    "dotenv": "^17.2.3",
     "hono": "^4.0.0",
     "zod": "^3.22.4"
   },

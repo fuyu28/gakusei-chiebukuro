@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import authRoutes from './routes/auth';
@@ -28,7 +29,12 @@ const port = parseInt(process.env.PORT || '3000');
 
 console.log(`Server is running on http://localhost:${port}`);
 
-export default {
-  port,
+// Node.js組み込みのHTTPサーバーとして起動
+import { serve } from '@hono/node-server';
+
+serve({
   fetch: app.fetch,
-};
+  port,
+});
+
+export default app;
