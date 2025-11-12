@@ -32,11 +32,14 @@ auth.post('/signup', zValidator('json', signupSchema), async (c) => {
   }
 
   try {
+    // メール認証設定（環境変数で制御）
+    const requireEmailVerification = process.env.REQUIRE_EMAIL_VERIFICATION === 'true';
+
     // Supabase Authでユーザー作成
     const { data, error } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
-      email_confirm: false, // 本番環境では true にしてメール認証を有効化
+      email_confirm: requireEmailVerification, // 環境変数で制御
     });
 
     if (error) {
@@ -117,7 +120,7 @@ auth.post('/logout', authMiddleware, async (c) => {
 
 // 現在のユーザー情報取得
 auth.get('/me', authMiddleware, async (c) => {
-  const user = c.get('user');
+  const user = c.get('user') as any;
 
   try {
     const { data: profile, error } = await supabase
