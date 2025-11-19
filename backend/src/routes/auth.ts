@@ -3,6 +3,10 @@ import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { supabase, supabaseAdmin, isAllowedEmailDomain } from '../lib/supabase';
 import { authMiddleware } from '../middleware/auth';
+import { asyncHandler, AppError } from '../utils/errors';
+import { HTTP_STATUS } from '../constants/http';
+import { TABLES } from '../constants/database';
+import { AuthUser } from '../types';
 
 const auth = new Hono();
 
@@ -20,131 +24,111 @@ const loginSchema = z.object({
 });
 
 // サインアップ
-auth.post('/signup', zValidator('json', signupSchema), async (c) => {
+auth.post('/signup', zValidator('json', signupSchema), asyncHandler(async (c: any) => {
   const { email, password, display_name } = c.req.valid('json');
 
   // メールドメインチェック
   if (!isAllowedEmailDomain(email)) {
-    return c.json(
-      { error: 'Only @ccmailg.meijo-u.ac.jp email addresses are allowed' },
-      400
+    throw new AppError(
+      'Only @ccmailg.meijo-u.ac.jp email addresses are allowed',
+      HTTP_STATUS.BAD_REQUEST
     );
   }
 
-  try {
-    // メール認証設定（環境変数で制御）
-    const requireEmailVerification = process.env.REQUIRE_EMAIL_VERIFICATION === 'true';
+  // メール認証設定（環境変数で制御）
+  const requireEmailVerification = process.env.REQUIRE_EMAIL_VERIFICATION === 'true';
 
-    // Supabase Authでユーザー作成
-    const { data, error } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: requireEmailVerification, // 環境変数で制御
-    });
+  // Supabase Authでユーザー作成
+  const { data, error } = await supabaseAdmin.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: requireEmailVerification, // 環境変数で制御
+  });
 
-    if (error) {
-      return c.json({ error: error.message }, 400);
-    }
-
-    // プロフィール作成
-    if (data.user) {
-      const { error: profileError } = await supabaseAdmin
-        .from('profiles')
-        .insert({
-          id: data.user.id,
-          email,
-          display_name: display_name || email.split('@')[0],
-        });
-
-      if (profileError) {
-        console.error('Profile creation error:', profileError);
-      }
-    }
-
-    return c.json({
-      message: 'User created successfully',
-      user: {
-        id: data.user?.id,
-        email: data.user?.email,
-      },
-    });
-  } catch (error) {
-    console.error('Signup error:', error);
-    return c.json({ error: 'Signup failed' }, 500);
+  if (error) {
+    throw new AppError(error.message, HTTP_STATUS.BAD_REQUEST);
   }
-});
+
+  // プロフィール作成
+  if (data.user) {
+    const { error: profileError } = await supabaseAdmin
+      .from(TABLES.PROFILES)
+      .insert({
+        id: data.user.id,
+        email,
+        display_name: display_name || (email as string).split('@')[0],
+      });
+
+    if (profileError) {
+      console.error('Profile creation error:', profileError);
+    }
+  }
+
+  return c.json({
+    message: 'User created successfully',
+    user: {
+      id: data.user?.id,
+      email: data.user?.email,
+    },
+  });
+}));
 
 // ログイン
-auth.post('/login', zValidator('json', loginSchema), async (c) => {
+auth.post('/login', zValidator('json', loginSchema), asyncHandler(async (c: any) => {
   const { email, password } = c.req.valid('json');
 
-  try {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
 
-    if (error) {
-      return c.json({ error: error.message }, 401);
-    }
-
-    return c.json({
-      message: 'Login successful',
-      access_token: data.session?.access_token,
-      user: {
-        id: data.user?.id,
-        email: data.user?.email,
-      },
-    });
-  } catch (error) {
-    console.error('Login error:', error);
-    return c.json({ error: 'Login failed' }, 500);
+  if (error) {
+    throw new AppError(error.message, HTTP_STATUS.UNAUTHORIZED);
   }
-});
+
+  return c.json({
+    message: 'Login successful',
+    access_token: data.session?.access_token,
+    user: {
+      id: data.user?.id,
+      email: data.user?.email,
+    },
+  });
+}));
 
 // ログアウト
-auth.post('/logout', authMiddleware, async (c) => {
-  try {
-    const { error } = await supabase.auth.signOut();
+auth.post('/logout', authMiddleware, asyncHandler(async (c) => {
+  const { error } = await supabase.auth.signOut();
 
-    if (error) {
-      return c.json({ error: error.message }, 400);
-    }
-
-    return c.json({ message: 'Logout successful' });
-  } catch (error) {
-    console.error('Logout error:', error);
-    return c.json({ error: 'Logout failed' }, 500);
+  if (error) {
+    throw new AppError(error.message, HTTP_STATUS.BAD_REQUEST);
   }
-});
+
+  return c.json({ message: 'Logout successful' });
+}));
 
 // 現在のユーザー情報取得
-auth.get('/me', authMiddleware, async (c) => {
-  const user = c.get('user') as any;
+auth.get('/me', authMiddleware, asyncHandler(async (c) => {
+  const user = c.get('user') as AuthUser;
 
-  try {
-    const { data: profile, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single();
+  const { data: profile, error } = await supabase
+    .from(TABLES.PROFILES)
+    .select('*')
+    .eq('id', user.id)
+    .single();
 
-    if (error) {
-      return c.json({ error: error.message }, 400);
-    }
-
-    return c.json({
-      user: {
-        id: user.id,
-        email: user.email,
-        display_name: profile?.display_name,
-        created_at: profile?.created_at,
-      },
-    });
-  } catch (error) {
-    console.error('Get user error:', error);
-    return c.json({ error: 'Failed to get user' }, 500);
+  if (error) {
+    throw new AppError(error.message, HTTP_STATUS.BAD_REQUEST);
   }
-});
+
+  return c.json({
+    user: {
+      id: user.id,
+      email: user.email,
+      display_name: profile?.display_name,
+      created_at: profile?.created_at,
+    },
+  });
+}));
 
 export default auth;

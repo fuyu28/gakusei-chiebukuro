@@ -5,6 +5,11 @@ export interface User {
   created_at: string;
 }
 
+export interface AuthUser {
+  id: string;
+  email: string;
+}
+
 export interface SubjectTag {
   id: number;
   name: string;

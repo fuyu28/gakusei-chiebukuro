@@ -183,6 +183,22 @@ function hideLoading(containerId = 'loading') {
   }
 }
 
+/**
+ * 非同期関数をローディング表示でラップ
+ * エラーが発生してもローディングを確実に非表示にする
+ * @param {Function} fn - 実行する非同期関数
+ * @param {string} containerId - ローディング表示先のID
+ * @returns {Promise} 関数の実行結果
+ */
+async function withLoading(fn, containerId = 'loading') {
+  try {
+    showLoading(containerId);
+    return await fn();
+  } finally {
+    hideLoading(containerId);
+  }
+}
+
 // ========== ページ遷移 ==========
 
 /**
