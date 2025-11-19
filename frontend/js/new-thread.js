@@ -1,10 +1,75 @@
 import { initAuthUI, setupLogoutButton } from './auth-module.js';
-// New thread creation logic will be added here
+import { fetchSubjectTags, createThread } from './api.js';
+import { showError, showSuccess, showLoading, hideLoading, navigateTo, requireAuth } from './utils.js';
 
+// 認証チェック
+requireAuth();
+
+// 科目タグを読み込み
+async function loadSubjectTags() {
+  try {
+    const tags = await fetchSubjectTags();
+    const select = document.getElementById('subject-tag');
+
+    tags.forEach(tag => {
+      const option = document.createElement('option');
+      option.value = tag.subject_tag_id;
+      option.textContent = tag.name;
+      select.appendChild(option);
+    });
+  } catch (error) {
+    showError('科目タグの読み込みに失敗しました');
+  }
+}
+
+// フォーム送信処理
+async function handleThreadSubmit(event) {
+  event.preventDefault();
+
+  const title = document.getElementById('title').value;
+  const content = document.getElementById('content').value;
+  const subject_tag_id = parseInt(document.getElementById('subject-tag').value);
+  const deadlineInput = document.getElementById('deadline').value;
+
+  // バリデーション
+  if (!title || !content || !subject_tag_id) {
+    showError('すべての必須項目を入力してください');
+    return;
+  }
+
+  // 締切をISO8601形式に変換
+  let deadline = undefined;
+  if (deadlineInput) {
+    deadline = new Date(deadlineInput).toISOString();
+  }
+
+  try {
+    showLoading();
+
+    const thread = await createThread({
+      title,
+      content,
+      subject_tag_id,
+      deadline,
+    });
+
+    hideLoading();
+    showSuccess('質問を投稿しました');
+
+    // スレッド詳細ページへ遷移
+    setTimeout(() => {
+      navigateTo(`thread.html?id=${thread.thread_id}`);
+    }, 1000);
+  } catch (error) {
+    hideLoading();
+    showError(error.message || '投稿に失敗しました');
+  }
+}
+
+// 初期化
 document.addEventListener('DOMContentLoaded', () => {
   initAuthUI();
   setupLogoutButton();
-
-  // New thread form logic to be implemented
-  console.log('New thread page loaded');
+  loadSubjectTags();
+  document.getElementById('thread-form').addEventListener('submit', handleThreadSubmit);
 });
