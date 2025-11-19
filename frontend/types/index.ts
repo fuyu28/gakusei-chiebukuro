@@ -4,6 +4,8 @@ export interface User {
   email: string;
   display_name?: string;
   created_at: string;
+  is_admin?: boolean;
+  is_banned?: boolean;
 }
 
 // スレッド型
@@ -41,6 +43,14 @@ export interface SubjectTag {
   created_at: string;
 }
 
+export interface AdminUser {
+  id: string;
+  email: string;
+  display_name?: string;
+  created_at: string;
+  is_banned: boolean;
+}
+
 // API レスポンス型
 export interface AuthResponse {
   access_token: string;
@@ -69,4 +79,13 @@ export interface TagsResponse {
 
 export interface UserResponse {
   user: User;
+}
+
+export interface AdminUsersResponse {
+  users: AdminUser[];
+}
+
+export interface AdminUserResponse {
+  user: AdminUser;
+  message: string;
 }
