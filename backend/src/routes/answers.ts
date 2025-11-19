@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
-import { supabase } from '../lib/supabase';
+import { supabase, supabaseAdmin } from '../lib/supabase';
 import { authMiddleware } from '../middleware/auth';
 import { asyncHandler, AppError } from '../utils/errors';
 import { verifyOwnership } from '../utils/authorization';
@@ -114,13 +114,13 @@ answers.patch('/:id/best', authMiddleware, asyncHandler(async (c) => {
   }
 
   // 既存のBAを解除
-  await supabase
+  await supabaseAdmin
     .from(TABLES.ANSWERS)
     .update({ is_best_answer: false })
     .eq('thread_id', answer.thread_id);
 
   // 新しいBAを設定
-  const { data: updatedAnswer, error: updateError } = await supabase
+  const { data: updatedAnswer, error: updateError } = await supabaseAdmin
     .from(TABLES.ANSWERS)
     .update({ is_best_answer: true })
     .eq('id', answer_id)
@@ -132,7 +132,7 @@ answers.patch('/:id/best', authMiddleware, asyncHandler(async (c) => {
   }
 
   // スレッドを解決済みに更新
-  await supabase
+  await supabaseAdmin
     .from(TABLES.THREADS)
     .update({ status: 'resolved' })
     .eq('id', answer.thread_id);
