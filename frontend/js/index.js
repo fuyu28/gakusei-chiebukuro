@@ -34,7 +34,7 @@ function displayThreads(threads) {
   }
 
   container.innerHTML = threads.map(thread => {
-    const statusClass = thread.status === 'resolved' ? 'resolved' : 'open';
+    const statusClass = thread.status === 'resolved' ? 'status-resolved' : 'status-open';
     const statusText = thread.status === 'resolved' ? '解決済み' : '未解決';
     const deadline = thread.deadline ? escapeHtml(formatDate(thread.deadline)) : '';
     const title = escapeHtml(thread.title);
@@ -43,24 +43,22 @@ function displayThreads(threads) {
     const tagName = escapeHtml(thread.subject_tag?.name || '未分類');
 
     return `
-      <a href="thread.html?id=${thread.id}" class="thread-item">
+      <div class="thread-card">
         <div class="thread-header">
-          <div class="thread-title-row">
-            <h3 class="thread-title">${title}</h3>
+          <div>
+            <a href="thread.html?id=${thread.id}" class="thread-title">${title}</a>
             <span class="thread-status ${statusClass}">${statusText}</span>
-          </div>
-          <div class="thread-meta">
-            <span class="thread-author">${authorName}</span>
-            <span class="thread-date">${formatDate(thread.created_at)}</span>
-            ${deadline ? `<span class="thread-deadline">締切: ${deadline}</span>` : ''}
           </div>
         </div>
         <p class="thread-content">${content}</p>
-        <div class="thread-footer">
+        <div class="thread-meta">
           <span class="thread-tag">${tagName}</span>
-          <span class="thread-answers">${thread.answers_count || 0}件の回答</span>
+          <span class="thread-author">${authorName}</span>
+          <span class="thread-date">${formatDate(thread.created_at)}</span>
+          ${deadline ? `<span class="thread-deadline">締切: ${deadline}</span>` : ''}
+          <span class="thread-answers-count">${thread.answers_count || 0}件の回答</span>
         </div>
-      </a>
+      </div>
     `;
   }).join('');
 }
