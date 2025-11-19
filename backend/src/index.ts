@@ -10,13 +10,17 @@ const app = new Hono();
 
 // CORS設定
 app.use('/*', cors({
-  origin: ['http://localhost:8080', 'http://127.0.0.1:8080'],
+  origin: ['http://localhost:8080', 'http://127.0.0.1:8080', 'http://localhost', 'http://localhost:80'],
   credentials: true,
 }));
 
 // ヘルスチェック
 app.get('/', (c) => {
   return c.json({ message: 'Gakusei Chiebukuro API', status: 'healthy' });
+});
+
+app.get('/api/health', (c) => {
+  return c.json({ status: 'healthy', timestamp: new Date().toISOString() });
 });
 
 // ルート

@@ -123,6 +123,31 @@ npx http-server -p 8080
 
 ブラウザで `http://localhost:8080` にアクセス
 
+## Docker での起動（推奨）
+
+Dockerを使うと、環境構築が簡単になります。
+
+### クイックスタート
+
+```bash
+# 環境変数の設定
+cd backend
+cp .env.example .env
+# .env ファイルを編集してSupabase認証情報を設定
+
+# プロジェクトルートに戻る
+cd ..
+
+# Dockerコンテナを起動
+docker-compose up -d
+```
+
+アクセス:
+- フロントエンド: http://localhost
+- バックエンドAPI: http://localhost:3000
+
+詳細な使用方法は [DOCKER.md](./DOCKER.md) を参照してください。
+
 ## API エンドポイント
 
 ### 認証
