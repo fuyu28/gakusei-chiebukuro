@@ -1,6 +1,6 @@
 import { fetchThreads, fetchSubjectTags } from './api.js';
 import { initAuthUI, setupLogoutButton } from './auth-module.js';
-import { formatDate } from './utils.js';
+import { formatDate, escapeHtml } from './utils.js';
 
 // フィルター状態
 const currentFilters = {
@@ -22,8 +22,11 @@ async function loadThreads() {
 
 // スレッドを表示
 function displayThreads(threads) {
-  const container = document.getElementById('threads-container');
-  if (!container) return;
+  const container = document.getElementById('threads-list');
+  if (!container) {
+    console.error('threads-list element not found');
+    return;
+  }
 
   if (threads.length === 0) {
     container.innerHTML = '<p class="no-data">質問がありません</p>';
@@ -33,25 +36,29 @@ function displayThreads(threads) {
   container.innerHTML = threads.map(thread => {
     const statusClass = thread.status === 'resolved' ? 'resolved' : 'open';
     const statusText = thread.status === 'resolved' ? '解決済み' : '未解決';
-    const deadline = thread.deadline ? formatDate(thread.deadline) : '';
+    const deadline = thread.deadline ? escapeHtml(formatDate(thread.deadline)) : '';
+    const title = escapeHtml(thread.title);
+    const content = escapeHtml(thread.content);
+    const authorName = escapeHtml(thread.user?.display_name || thread.user?.email || '不明');
+    const tagName = escapeHtml(thread.subject_tag?.name || '未分類');
 
     return `
-      <a href="thread.html?id=${thread.thread_id}" class="thread-item">
+      <a href="thread.html?id=${thread.id}" class="thread-item">
         <div class="thread-header">
           <div class="thread-title-row">
-            <h3 class="thread-title">${thread.title}</h3>
+            <h3 class="thread-title">${title}</h3>
             <span class="thread-status ${statusClass}">${statusText}</span>
           </div>
           <div class="thread-meta">
-            <span class="thread-author">${thread.display_name || thread.email}</span>
+            <span class="thread-author">${authorName}</span>
             <span class="thread-date">${formatDate(thread.created_at)}</span>
             ${deadline ? `<span class="thread-deadline">締切: ${deadline}</span>` : ''}
           </div>
         </div>
-        <p class="thread-content">${thread.content}</p>
+        <p class="thread-content">${content}</p>
         <div class="thread-footer">
-          <span class="thread-tag">${thread.subject_tag_name}</span>
-          <span class="thread-answers">${thread.answer_count || 0}件の回答</span>
+          <span class="thread-tag">${tagName}</span>
+          <span class="thread-answers">${thread.answers_count || 0}件の回答</span>
         </div>
       </a>
     `;
@@ -67,7 +74,7 @@ async function loadSubjectTags() {
 
     tags.forEach(tag => {
       const option = document.createElement('option');
-      option.value = tag.subject_tag_id;
+      option.value = tag.id;  // APIは id を返す
       option.textContent = tag.name;
       select.appendChild(option);
     });

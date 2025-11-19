@@ -13,7 +13,7 @@ async function loadSubjectTags() {
 
     tags.forEach(tag => {
       const option = document.createElement('option');
-      option.value = tag.subject_tag_id;
+      option.value = tag.id;  // APIは id を返す
       option.textContent = tag.name;
       select.appendChild(option);
     });
@@ -32,7 +32,7 @@ async function handleThreadSubmit(event) {
   const deadlineInput = document.getElementById('deadline').value;
 
   // バリデーション
-  if (!title || !content || !subject_tag_id) {
+  if (!title || !content || !subject_tag_id || isNaN(subject_tag_id)) {
     showError('すべての必須項目を入力してください');
     return;
   }
@@ -54,12 +54,8 @@ async function handleThreadSubmit(event) {
     });
 
     hideLoading();
-    showSuccess('質問を投稿しました');
-
-    // スレッド詳細ページへ遷移
-    setTimeout(() => {
-      navigateTo(`thread.html?id=${thread.thread_id}`);
-    }, 1000);
+    // スレッド詳細ページへ即座に遷移
+    navigateTo(`thread.html?id=${thread.id}`);
   } catch (error) {
     hideLoading();
     showError(error.message || '投稿に失敗しました');

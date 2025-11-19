@@ -65,12 +65,8 @@ async function handleLogin(event) {
     await apiLogin(email, password);
 
     hideLoading();
-    showSuccess('ログインしました');
-
-    // トップページへ遷移
-    setTimeout(() => {
-      navigateTo('/index.html');
-    }, 1000);
+    // トップページへ即座に遷移
+    navigateTo('/index.html');
   } catch (error) {
     hideLoading();
     showError(error.message || 'ログインに失敗しました');
@@ -114,12 +110,8 @@ async function handleSignup(event) {
     await apiSignup(email, password, displayName);
 
     hideLoading();
-    showSuccess('アカウントを作成しました。ログインしてください。');
-
-    // ログインページへ遷移
-    setTimeout(() => {
-      navigateTo('/login.html');
-    }, 2000);
+    // ログインページへ即座に遷移
+    navigateTo('/login.html');
   } catch (error) {
     hideLoading();
     showError(error.message || 'アカウント作成に失敗しました');
@@ -132,11 +124,8 @@ async function handleSignup(event) {
 async function handleLogout() {
   try {
     await apiLogout();
-    showSuccess('ログアウトしました');
-
-    setTimeout(() => {
-      navigateTo('/login.html');
-    }, 1000);
+    // ログインページへ即座に遷移
+    navigateTo('/login.html');
   } catch (error) {
     showError(error.message || 'ログアウトに失敗しました');
   }
