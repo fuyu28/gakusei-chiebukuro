@@ -6,17 +6,17 @@
 const API_BASE_URL = 'http://localhost:3000/api';
 
 // ローカルストレージからトークンを取得
-function getAuthToken() {
+export function getAuthToken() {
   return localStorage.getItem('auth_token');
 }
 
 // トークンを保存
-function setAuthToken(token) {
+export function setAuthToken(token) {
   localStorage.setItem('auth_token', token);
 }
 
 // トークンを削除
-function clearAuthToken() {
+export function clearAuthToken() {
   localStorage.removeItem('auth_token');
 }
 
@@ -54,7 +54,7 @@ async function apiFetch(endpoint, options = {}) {
  * @param {string} displayName - 表示名（オプション）
  * @returns {Promise<Object>} ユーザー情報
  */
-async function signup(email, password, displayName) {
+export async function signup(email, password, displayName) {
   return await apiFetch('/auth/signup', {
     method: 'POST',
     body: JSON.stringify({
@@ -71,7 +71,7 @@ async function signup(email, password, displayName) {
  * @param {string} password - パスワード
  * @returns {Promise<Object>} アクセストークンとユーザー情報
  */
-async function login(email, password) {
+export async function login(email, password) {
   const data = await apiFetch('/auth/login', {
     method: 'POST',
     body: JSON.stringify({ email, password }),
@@ -89,7 +89,7 @@ async function login(email, password) {
  * ログアウト
  * @returns {Promise<Object>}
  */
-async function logout() {
+export async function logout() {
   const data = await apiFetch('/auth/logout', {
     method: 'POST',
   });
@@ -104,7 +104,7 @@ async function logout() {
  * 現在のユーザー情報を取得
  * @returns {Promise<Object>} ユーザー情報
  */
-async function getCurrentUser() {
+export async function getCurrentUser() {
   return await apiFetch('/auth/me');
 }
 
@@ -112,7 +112,7 @@ async function getCurrentUser() {
  * ログイン状態をチェック
  * @returns {boolean}
  */
-function isLoggedIn() {
+export function isLoggedIn() {
   return !!getAuthToken();
 }
 
@@ -127,7 +127,7 @@ function isLoggedIn() {
  * @param {string} filters.order - ソート順（'asc' または 'desc'）
  * @returns {Promise<Array>} スレッドの配列
  */
-async function fetchThreads(filters = {}) {
+export async function fetchThreads(filters = {}) {
   const params = new URLSearchParams();
 
   if (filters.status) params.append('status', filters.status);
@@ -146,7 +146,7 @@ async function fetchThreads(filters = {}) {
  * @param {number} threadId - スレッドID
  * @returns {Promise<Object>} スレッド情報
  */
-async function fetchThreadDetail(threadId) {
+export async function fetchThreadDetail(threadId) {
   const data = await apiFetch(`/threads/${threadId}`);
   return data.thread;
 }
@@ -160,7 +160,7 @@ async function fetchThreadDetail(threadId) {
  * @param {string} threadData.deadline - 締切日時（ISO8601形式、オプション）
  * @returns {Promise<Object>} 作成されたスレッド
  */
-async function createThread(threadData) {
+export async function createThread(threadData) {
   const data = await apiFetch('/threads', {
     method: 'POST',
     body: JSON.stringify(threadData),
@@ -175,7 +175,7 @@ async function createThread(threadData) {
  * @param {Object} updates - 更新内容
  * @returns {Promise<Object>} 更新されたスレッド
  */
-async function updateThread(threadId, updates) {
+export async function updateThread(threadId, updates) {
   const data = await apiFetch(`/threads/${threadId}`, {
     method: 'PATCH',
     body: JSON.stringify(updates),
@@ -189,7 +189,7 @@ async function updateThread(threadId, updates) {
  * @param {number} threadId - スレッドID
  * @returns {Promise<Object>}
  */
-async function deleteThread(threadId) {
+export async function deleteThread(threadId) {
   return await apiFetch(`/threads/${threadId}`, {
     method: 'DELETE',
   });
@@ -202,7 +202,7 @@ async function deleteThread(threadId) {
  * @param {number} threadId - スレッドID
  * @returns {Promise<Array>} 回答の配列
  */
-async function fetchAnswers(threadId) {
+export async function fetchAnswers(threadId) {
   const data = await apiFetch(`/answers/threads/${threadId}`);
   return data.answers;
 }
@@ -213,7 +213,7 @@ async function fetchAnswers(threadId) {
  * @param {string} content - 回答内容
  * @returns {Promise<Object>} 投稿された回答
  */
-async function createAnswer(threadId, content) {
+export async function createAnswer(threadId, content) {
   const data = await apiFetch('/answers', {
     method: 'POST',
     body: JSON.stringify({
@@ -230,7 +230,7 @@ async function createAnswer(threadId, content) {
  * @param {number} answerId - 回答ID
  * @returns {Promise<Object>}
  */
-async function selectBestAnswer(answerId) {
+export async function selectBestAnswer(answerId) {
   return await apiFetch(`/answers/${answerId}/best`, {
     method: 'PATCH',
   });
@@ -241,7 +241,7 @@ async function selectBestAnswer(answerId) {
  * @param {number} answerId - 回答ID
  * @returns {Promise<Object>}
  */
-async function deleteAnswer(answerId) {
+export async function deleteAnswer(answerId) {
   return await apiFetch(`/answers/${answerId}`, {
     method: 'DELETE',
   });
@@ -253,7 +253,7 @@ async function deleteAnswer(answerId) {
  * 科目タグ一覧を取得
  * @returns {Promise<Array>} タグの配列
  */
-async function fetchSubjectTags() {
+export async function fetchSubjectTags() {
   const data = await apiFetch('/subject-tags');
   return data.tags;
 }
@@ -263,7 +263,7 @@ async function fetchSubjectTags() {
  * @param {string} name - タグ名
  * @returns {Promise<Object>}
  */
-async function createSubjectTag(name) {
+export async function createSubjectTag(name) {
   const data = await apiFetch('/subject-tags', {
     method: 'POST',
     body: JSON.stringify({ name }),

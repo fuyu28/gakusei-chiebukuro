@@ -3,13 +3,15 @@
  * DOM操作や日付フォーマットなどのヘルパー関数
  */
 
+import { isLoggedIn } from './api.js';
+
 // ========== DOM操作ヘルパー ==========
 
 /**
  * 要素を表示
  * @param {string|HTMLElement} element - セレクタまたは要素
  */
-function showElement(element) {
+export function showElement(element) {
   const el = typeof element === 'string' ? document.querySelector(element) : element;
   if (el) el.style.display = 'block';
 }
@@ -18,7 +20,7 @@ function showElement(element) {
  * 要素を非表示
  * @param {string|HTMLElement} element - セレクタまたは要素
  */
-function hideElement(element) {
+export function hideElement(element) {
   const el = typeof element === 'string' ? document.querySelector(element) : element;
   if (el) el.style.display = 'none';
 }
@@ -28,7 +30,7 @@ function hideElement(element) {
  * @param {string|HTMLElement} element - セレクタまたは要素
  * @param {string} className - クラス名
  */
-function addClass(element, className) {
+export function addClass(element, className) {
   const el = typeof element === 'string' ? document.querySelector(element) : element;
   if (el) el.classList.add(className);
 }
@@ -38,7 +40,7 @@ function addClass(element, className) {
  * @param {string|HTMLElement} element - セレクタまたは要素
  * @param {string} className - クラス名
  */
-function removeClass(element, className) {
+export function removeClass(element, className) {
   const el = typeof element === 'string' ? document.querySelector(element) : element;
   if (el) el.classList.remove(className);
 }
@@ -50,7 +52,7 @@ function removeClass(element, className) {
  * @param {string} message - エラーメッセージ
  * @param {string} containerId - 表示先のコンテナID
  */
-function showError(message, containerId = 'error-message') {
+export function showError(message, containerId = 'error-message') {
   const container = document.getElementById(containerId);
   if (container) {
     container.textContent = message;
@@ -66,7 +68,7 @@ function showError(message, containerId = 'error-message') {
  * @param {string} message - 成功メッセージ
  * @param {string} containerId - 表示先のコンテナID
  */
-function showSuccess(message, containerId = 'success-message') {
+export function showSuccess(message, containerId = 'success-message') {
   const container = document.getElementById(containerId);
   if (container) {
     container.textContent = message;
@@ -84,7 +86,7 @@ function showSuccess(message, containerId = 'success-message') {
  * @param {string} isoDate - ISO8601形式の日付
  * @returns {string} フォーマットされた日付
  */
-function formatDate(isoDate) {
+export function formatDate(isoDate) {
   const date = new Date(isoDate);
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -100,7 +102,7 @@ function formatDate(isoDate) {
  * @param {string} isoDate - ISO8601形式の日付
  * @returns {string} 相対時間
  */
-function timeAgo(isoDate) {
+export function timeAgo(isoDate) {
   const date = new Date(isoDate);
   const now = new Date();
   const diffMs = now - date;
@@ -123,7 +125,7 @@ function timeAgo(isoDate) {
  * @param {string} email - メールアドレス
  * @returns {boolean}
  */
-function isValidEmail(email) {
+export function isValidEmail(email) {
   const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return regex.test(email);
 }
@@ -133,7 +135,7 @@ function isValidEmail(email) {
  * @param {string} email - メールアドレス
  * @returns {boolean}
  */
-function isMeijoEmail(email) {
+export function isMeijoEmail(email) {
   return email.endsWith('@ccmailg.meijo-u.ac.jp');
 }
 
@@ -144,7 +146,7 @@ function isMeijoEmail(email) {
  * @param {string} text - エスケープするテキスト
  * @returns {string} エスケープされたテキスト
  */
-function escapeHtml(text) {
+export function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
@@ -155,7 +157,7 @@ function escapeHtml(text) {
  * @param {string} text - 変換するテキスト
  * @returns {string}
  */
-function nl2br(text) {
+export function nl2br(text) {
   return escapeHtml(text).replace(/\n/g, '<br>');
 }
 
@@ -165,7 +167,7 @@ function nl2br(text) {
  * ローディングを表示
  * @param {string} containerId - ローディング表示先のID
  */
-function showLoading(containerId = 'loading') {
+export function showLoading(containerId = 'loading') {
   const container = document.getElementById(containerId);
   if (container) {
     container.style.display = 'flex';
@@ -176,7 +178,7 @@ function showLoading(containerId = 'loading') {
  * ローディングを非表示
  * @param {string} containerId - ローディング表示先のID
  */
-function hideLoading(containerId = 'loading') {
+export function hideLoading(containerId = 'loading') {
   const container = document.getElementById(containerId);
   if (container) {
     container.style.display = 'none';
@@ -190,7 +192,7 @@ function hideLoading(containerId = 'loading') {
  * @param {string} containerId - ローディング表示先のID
  * @returns {Promise} 関数の実行結果
  */
-async function withLoading(fn, containerId = 'loading') {
+export async function withLoading(fn, containerId = 'loading') {
   try {
     showLoading(containerId);
     return await fn();
@@ -205,14 +207,14 @@ async function withLoading(fn, containerId = 'loading') {
  * ページ遷移
  * @param {string} url - 遷移先URL
  */
-function navigateTo(url) {
+export function navigateTo(url) {
   window.location.href = url;
 }
 
 /**
  * 認証が必要なページの場合、未ログインならログインページへ
  */
-function requireAuth() {
+export function requireAuth() {
   if (!isLoggedIn()) {
     navigateTo('/login.html');
   }
