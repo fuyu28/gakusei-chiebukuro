@@ -1,22 +1,9 @@
-# Git
-.git
-.gitignore
-
-# Documentation
-*.md
-!README.md
-
-# IDE
-.vscode
-.idea
-*.swp
-*.swo
-*~
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Docker
 Dockerfile
 .dockerignore
+node_modules
+npm-debug.log
+README.md
+.next
+.git
+.gitignore
+.env*.local

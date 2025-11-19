@@ -65,7 +65,7 @@ answers.post('/', authMiddleware, zValidator('json', createAnswerSchema), asyncH
   }
 
   // 回答を投稿
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from(TABLES.ANSWERS)
     .insert({
       thread_id,
@@ -152,7 +152,7 @@ answers.delete('/:id', authMiddleware, asyncHandler(async (c) => {
   await verifyOwnership(TABLES.ANSWERS, answer_id, user.id);
 
   // 削除
-  const { error } = await supabase.from(TABLES.ANSWERS).delete().eq('id', answer_id);
+  const { error } = await supabaseAdmin.from(TABLES.ANSWERS).delete().eq('id', answer_id);
 
   if (error) {
     throw new AppError(error.message, HTTP_STATUS.BAD_REQUEST);

@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
-import { supabase } from '../lib/supabase';
+import { supabase, supabaseAdmin } from '../lib/supabase';
 import { authMiddleware } from '../middleware/auth';
 import { asyncHandler, AppError } from '../utils/errors';
 import { verifyOwnership } from '../utils/authorization';
@@ -95,7 +95,7 @@ threads.post('/', authMiddleware, zValidator('json', createThreadSchema), asyncH
   const user = c.get('user') as AuthUser;
   const { title, content, subject_tag_id, deadline } = c.req.valid('json');
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from(TABLES.THREADS)
     .insert({
       title,
@@ -124,7 +124,7 @@ threads.patch('/:id', authMiddleware, zValidator('json', updateThreadSchema), as
   await verifyOwnership(TABLES.THREADS, id, user.id);
 
   // 更新
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from(TABLES.THREADS)
     .update({
       ...updates,
@@ -150,7 +150,7 @@ threads.delete('/:id', authMiddleware, asyncHandler(async (c) => {
   await verifyOwnership(TABLES.THREADS, id, user.id);
 
   // 削除
-  const { error } = await supabase.from(TABLES.THREADS).delete().eq('id', id);
+  const { error } = await supabaseAdmin.from(TABLES.THREADS).delete().eq('id', id);
 
   if (error) {
     throw new AppError(error.message, HTTP_STATUS.BAD_REQUEST);

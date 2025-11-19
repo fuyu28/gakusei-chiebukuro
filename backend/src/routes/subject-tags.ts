@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
-import { supabase } from '../lib/supabase';
+import { supabase, supabaseAdmin } from '../lib/supabase';
 import { asyncHandler, AppError } from '../utils/errors';
 import { HTTP_STATUS } from '../constants/http';
 import { TABLES } from '../constants/database';
@@ -15,7 +15,7 @@ const createTagSchema = z.object({
 
 // 科目タグ一覧取得
 subjectTags.get('/', asyncHandler(async (c) => {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from(TABLES.SUBJECT_TAGS)
     .select('*')
     .order('name', { ascending: true });
