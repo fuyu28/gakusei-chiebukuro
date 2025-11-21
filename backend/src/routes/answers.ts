@@ -1,13 +1,21 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
-import { supabase, supabaseAdmin } from '../lib/supabase';
 import { authMiddleware } from '../middleware/auth';
 import { asyncHandler, AppError } from '../utils/errors';
 import { verifyOwnership } from '../utils/authorization';
 import { HTTP_STATUS, ERROR_MESSAGES } from '../constants/http';
 import { TABLES } from '../constants/database';
 import { AuthUser } from '../types';
+import { getThreadById, getThreadOwner, updateThreadStatus } from '../services/threads';
+import {
+  listAnswersByThread,
+  createAnswerRecord,
+  getAnswerById,
+  clearBestAnswer,
+  setBestAnswer,
+  deleteAnswerById,
+} from '../services/answers';
 
 const answers = new Hono();
 
@@ -21,21 +29,8 @@ const createAnswerSchema = z.object({
 answers.get('/threads/:thread_id', asyncHandler(async (c) => {
   const thread_id = parseInt(c.req.param('thread_id'));
 
-  const { data, error } = await supabase
-    .from(TABLES.ANSWERS)
-    .select(`
-      *,
-      user:profiles(id, email, display_name)
-    `)
-    .eq('thread_id', thread_id)
-    .order('is_best_answer', { ascending: false })
-    .order('created_at', { ascending: true });
-
-  if (error) {
-    throw new AppError(error.message, HTTP_STATUS.BAD_REQUEST);
-  }
-
-  return c.json({ answers: data });
+  const answersList = await listAnswersByThread(thread_id);
+  return c.json({ answers: answersList });
 }));
 
 // 回答投稿
@@ -44,15 +39,7 @@ answers.post('/', authMiddleware, zValidator('json', createAnswerSchema), asyncH
   const { thread_id, content } = c.req.valid('json');
 
   // スレッドの存在確認と締切チェック
-  const { data: thread, error: threadError } = await supabase
-    .from(TABLES.THREADS)
-    .select('deadline, status')
-    .eq('id', thread_id)
-    .single();
-
-  if (threadError || !thread) {
-    throw new AppError(ERROR_MESSAGES.THREAD_NOT_FOUND, HTTP_STATUS.NOT_FOUND);
-  }
+  const thread = await getThreadById(thread_id);
 
   // 締切チェック
   if (thread.deadline && new Date(thread.deadline) < new Date()) {
@@ -65,21 +52,9 @@ answers.post('/', authMiddleware, zValidator('json', createAnswerSchema), asyncH
   }
 
   // 回答を投稿
-  const { data, error } = await supabase
-    .from(TABLES.ANSWERS)
-    .insert({
-      thread_id,
-      content,
-      user_id: user.id,
-    })
-    .select()
-    .single();
+  const answer = await createAnswerRecord({ thread_id, content, user_id: user.id });
 
-  if (error) {
-    throw new AppError(error.message, HTTP_STATUS.BAD_REQUEST);
-  }
-
-  return c.json({ message: 'Answer created successfully', answer: data }, HTTP_STATUS.CREATED as any);
+  return c.json({ message: 'Answer created successfully', answer }, HTTP_STATUS.CREATED as any);
 }));
 
 // ベストアンサー選択
@@ -88,54 +63,23 @@ answers.patch('/:id/best', authMiddleware, asyncHandler(async (c) => {
   const answer_id = parseInt(c.req.param('id'));
 
   // 回答の取得
-  const { data: answer, error: answerError } = await supabase
-    .from(TABLES.ANSWERS)
-    .select('thread_id')
-    .eq('id', answer_id)
-    .single();
-
-  if (answerError || !answer) {
-    throw new AppError(ERROR_MESSAGES.ANSWER_NOT_FOUND, HTTP_STATUS.NOT_FOUND);
-  }
+  const answer = await getAnswerById(answer_id);
 
   // スレッドの所有者確認
-  const { data: thread, error: threadError } = await supabase
-    .from(TABLES.THREADS)
-    .select('user_id')
-    .eq('id', answer.thread_id)
-    .single();
+  const threadOwner = await getThreadOwner(answer.thread_id);
 
-  if (threadError || !thread) {
-    throw new AppError(ERROR_MESSAGES.THREAD_NOT_FOUND, HTTP_STATUS.NOT_FOUND);
-  }
-
-  if (thread.user_id !== user.id) {
+  if (threadOwner.user_id !== user.id) {
     throw new AppError(ERROR_MESSAGES.ONLY_OWNER_CAN_SELECT_BEST, HTTP_STATUS.FORBIDDEN);
   }
 
   // 既存のBAを解除
-  await supabaseAdmin
-    .from(TABLES.ANSWERS)
-    .update({ is_best_answer: false })
-    .eq('thread_id', answer.thread_id);
+  await clearBestAnswer(answer.thread_id);
 
   // 新しいBAを設定
-  const { data: updatedAnswer, error: updateError } = await supabaseAdmin
-    .from(TABLES.ANSWERS)
-    .update({ is_best_answer: true })
-    .eq('id', answer_id)
-    .select()
-    .single();
-
-  if (updateError) {
-    throw new AppError(updateError.message, HTTP_STATUS.BAD_REQUEST);
-  }
+  const updatedAnswer = await setBestAnswer(answer_id);
 
   // スレッドを解決済みに更新
-  await supabaseAdmin
-    .from(TABLES.THREADS)
-    .update({ status: 'resolved' })
-    .eq('id', answer.thread_id);
+  await updateThreadStatus(answer.thread_id, 'resolved');
 
   return c.json({
     message: 'Best answer selected successfully',
@@ -152,11 +96,7 @@ answers.delete('/:id', authMiddleware, asyncHandler(async (c) => {
   await verifyOwnership(TABLES.ANSWERS, answer_id, user.id);
 
   // 削除
-  const { error } = await supabase.from(TABLES.ANSWERS).delete().eq('id', answer_id);
-
-  if (error) {
-    throw new AppError(error.message, HTTP_STATUS.BAD_REQUEST);
-  }
+  await deleteAnswerById(answer_id);
 
   return c.json({ message: 'Answer deleted successfully' });
 }));
