@@ -15,6 +15,7 @@ Yahoo!知恵袋のような形式で、学生同士が学習に関する質問�
 - **解決済/未解決**: ステータスで質問を管理
 - **回答締切**: 質問に回答期限を設定可能
 - **フィルタ機能**: ステータスや科目でフィルタリング
+- **管理者ダッシュボード**: 指定した管理者がユーザー一覧の確認やBAN/解除を実行可能
 
 ## 技術スタック
 
@@ -105,7 +106,10 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 PORT=3000
 NODE_ENV=development
 ALLOWED_EMAIL_DOMAIN=ccmailg.meijo-u.ac.jp
+ADMIN_EMAILS=admin1@ccmailg.meijo-u.ac.jp,admin2@ccmailg.meijo-u.ac.jp
 ```
+
+`ADMIN_EMAILS` には管理者権限を付与したいメールアドレスをカンマ区切りで指定します。指定されたユーザーは管理者ダッシュボードへアクセスでき、BAN 操作などを実行できます。
 
 ### 3. フロントエンドのセットアップ
 
@@ -145,6 +149,12 @@ docker-compose up -d --build
 - バックエンドAPI: http://localhost:3000
 
 詳細な使用方法は [DOCKER.md](./DOCKER.md) を参照してください。
+
+## 管理者機能
+
+- 管理者に指定されたユーザーはフロントエンドから `/admin/users` にアクセスし、ユーザー一覧や BAN/解除操作を行えます。
+- BAN されたユーザーは API へのアクセスが拒否され、質問・回答の投稿などができなくなります（ログインは可能ですが認証済み API が 403 を返します）。
+- 管理者判定は環境変数 `ADMIN_EMAILS` のメールアドレス一覧で行います。
 
 ## API エンドポイント
 
@@ -204,4 +214,5 @@ npm run build
 ## ライセンス
 
 MIT
-
+- `GET /api/admin/users` - 管理者: ユーザー一覧取得
+- `PATCH /api/admin/users/:id/ban` - 管理者: BAN/解除

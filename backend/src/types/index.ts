@@ -3,11 +3,15 @@ export interface User {
   email: string;
   display_name?: string;
   created_at: string;
+  is_banned?: boolean;
+  is_admin?: boolean;
 }
 
 export interface AuthUser {
   id: string;
   email: string;
+  is_admin?: boolean;
+  is_banned?: boolean;
 }
 
 export interface SubjectTag {
@@ -54,4 +58,12 @@ export interface AnswerWithUser extends Answer {
     email: string;
     display_name?: string;
   };
+}
+
+export interface AdminUserSummary {
+  id: string;
+  email: string;
+  display_name?: string;
+  created_at: string;
+  is_banned: boolean;
 }

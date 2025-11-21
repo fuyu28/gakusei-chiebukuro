@@ -31,6 +31,14 @@ export default function Header() {
                 <span className="text-gray-700">
                   {user?.display_name || user?.email}
                 </span>
+                {user?.is_admin && (
+                  <Link
+                    href="/admin/users"
+                    className="text-gray-700 hover:text-gray-900"
+                  >
+                    管理
+                  </Link>
+                )}
                 <Link
                   href="/threads/new"
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"

@@ -1,12 +1,12 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
-import { supabase, supabaseAdmin, isAllowedEmailDomain } from '../lib/supabase';
+import { supabase, isAllowedEmailDomain } from '../lib/supabase';
 import { authMiddleware } from '../middleware/auth';
 import { asyncHandler, AppError } from '../utils/errors';
 import { HTTP_STATUS } from '../constants/http';
-import { TABLES } from '../constants/database';
 import { AuthUser } from '../types';
+import { ensureUserProfile } from '../services/profiles';
 
 const auth = new Hono();
 
@@ -35,40 +35,40 @@ auth.post('/signup', zValidator('json', signupSchema), asyncHandler(async (c: an
     );
   }
 
-  // メール認証設定（環境変数で制御）
-  const requireEmailVerification = process.env.REQUIRE_EMAIL_VERIFICATION === 'true';
+  const requireEmailVerification = process.env.REQUIRE_EMAIL_VERIFICATION !== 'false';
 
-  // Supabase Authでユーザー作成
-  const { data, error } = await supabaseAdmin.auth.admin.createUser({
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    email_confirm: requireEmailVerification, // 環境変数で制御
+    options: {
+      emailRedirectTo: process.env.EMAIL_REDIRECT_TO || undefined,
+      data: {
+        display_name: display_name || (email as string).split('@')[0],
+      },
+    },
   });
 
   if (error) {
     throw new AppError(error.message, HTTP_STATUS.BAD_REQUEST);
   }
 
-  // プロフィール作成
-  if (data.user) {
-    const { error: profileError } = await supabaseAdmin
-      .from(TABLES.PROFILES)
-      .insert({
-        id: data.user.id,
-        email,
-        display_name: display_name || (email as string).split('@')[0],
-      });
-
-    if (profileError) {
-      console.error('Profile creation error:', profileError);
-    }
+  if (!data.user) {
+    throw new AppError('Failed to create user', HTTP_STATUS.BAD_REQUEST);
   }
 
+  await ensureUserProfile({
+    id: data.user.id,
+    email,
+    displayName: display_name || (email as string).split('@')[0],
+  });
+
   return c.json({
-    message: 'User created successfully',
+    message: requireEmailVerification
+      ? 'User created successfully. Please check your email to confirm.'
+      : 'User created successfully',
     user: {
-      id: data.user?.id,
-      email: data.user?.email,
+      id: data.user.id,
+      email: data.user.email,
     },
   });
 }));
@@ -111,15 +111,10 @@ auth.post('/logout', authMiddleware, asyncHandler(async (c) => {
 auth.get('/me', authMiddleware, asyncHandler(async (c) => {
   const user = c.get('user') as AuthUser;
 
-  const { data: profile, error } = await supabase
-    .from(TABLES.PROFILES)
-    .select('*')
-    .eq('id', user.id)
-    .single();
-
-  if (error) {
-    throw new AppError(error.message, HTTP_STATUS.BAD_REQUEST);
-  }
+  const profile = await ensureUserProfile({
+    id: user.id,
+    email: user.email,
+  });
 
   return c.json({
     user: {
@@ -127,6 +122,8 @@ auth.get('/me', authMiddleware, asyncHandler(async (c) => {
       email: user.email,
       display_name: profile?.display_name,
       created_at: profile?.created_at,
+      is_banned: profile?.is_banned ?? false,
+      is_admin: user.is_admin ?? false,
     },
   });
 }));

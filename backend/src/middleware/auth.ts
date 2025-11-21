@@ -1,5 +1,9 @@
 import { Context, Next } from 'hono';
 import { supabase } from '../lib/supabase';
+import { HTTP_STATUS } from '../constants/http';
+import { isAdminEmail } from '../utils/admin';
+import { AuthUser } from '../types';
+import { ensureUserProfile } from '../services/profiles';
 
 export async function authMiddleware(c: Context, next: Next) {
   const authHeader = c.req.header('Authorization');
@@ -17,8 +21,24 @@ export async function authMiddleware(c: Context, next: Next) {
       return c.json({ error: 'Invalid token' }, 401);
     }
 
-    // ユーザー情報をコンテキストに設定
-    c.set('user', user);
+    const profile = await ensureUserProfile({
+      id: user.id,
+      email: user.email,
+      displayName: user.user_metadata?.display_name,
+    });
+
+    if (profile?.is_banned) {
+      return c.json({ error: 'Account has been banned' }, HTTP_STATUS.FORBIDDEN);
+    }
+
+    const authUser: AuthUser = {
+      id: user.id,
+      email: user.email || '',
+      is_admin: isAdminEmail(user.email || ''),
+      is_banned: profile?.is_banned ?? false,
+    };
+
+    c.set('user', authUser);
     await next();
   } catch (error) {
     return c.json({ error: 'Authentication failed' }, 401);

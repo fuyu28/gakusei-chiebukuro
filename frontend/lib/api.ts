@@ -8,6 +8,9 @@ import type {
   UserResponse,
   Thread,
   Answer,
+  AdminUsersResponse,
+  AdminUserResponse,
+  AdminUser,
 } from '@/types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000/api';
@@ -160,4 +163,18 @@ export const deleteAnswer = async (answerId: number): Promise<void> => {
 export const fetchSubjectTags = async () => {
   const data = await apiFetch<TagsResponse>('/subject-tags');
   return data.tags;
+};
+
+// 管理者API
+export const fetchAdminUsers = async (): Promise<AdminUser[]> => {
+  const data = await apiFetch<AdminUsersResponse>('/admin/users');
+  return data.users;
+};
+
+export const updateUserBanStatus = async (userId: string, isBanned: boolean): Promise<AdminUser> => {
+  const data = await apiFetch<AdminUserResponse>(`/admin/users/${userId}/ban`, {
+    method: 'PATCH',
+    body: JSON.stringify({ is_banned: isBanned }),
+  });
+  return data.user;
 };

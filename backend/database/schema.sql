@@ -3,8 +3,12 @@ CREATE TABLE IF NOT EXISTS profiles (
   id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
   email TEXT UNIQUE NOT NULL,
   display_name TEXT,
+  is_banned BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+ALTER TABLE profiles
+  ADD COLUMN IF NOT EXISTS is_banned BOOLEAN DEFAULT FALSE;
 
 -- 科目タグマスタ
 CREATE TABLE IF NOT EXISTS subject_tags (

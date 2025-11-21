@@ -5,6 +5,7 @@ import authRoutes from './routes/auth';
 import threadsRoutes from './routes/threads';
 import answersRoutes from './routes/answers';
 import subjectTagsRoutes from './routes/subject-tags';
+import adminRoutes from './routes/admin';
 
 const app = new Hono();
 
@@ -28,6 +29,7 @@ app.route('/api/auth', authRoutes);
 app.route('/api/threads', threadsRoutes);
 app.route('/api/answers', answersRoutes);
 app.route('/api/subject-tags', subjectTagsRoutes);
+app.route('/api/admin', adminRoutes);
 
 const port = parseInt(process.env.PORT || '3000');
 
