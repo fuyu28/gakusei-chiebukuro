@@ -42,6 +42,17 @@ export interface Answer {
   updated_at: string;
 }
 
+export interface PastExamFile {
+  id: number;
+  subject_tag_id: number;
+  title: string;
+  file_path: string;
+  file_type: string;
+  file_size?: number | null;
+  uploaded_by: string;
+  created_at: string;
+}
+
 export interface ThreadWithDetails extends Thread {
   subject_tag?: SubjectTag;
   user?: {
@@ -58,6 +69,16 @@ export interface AnswerWithUser extends Answer {
     email: string;
     display_name?: string;
   };
+}
+
+export interface PastExamFileWithRelations extends PastExamFile {
+  subject_tag?: SubjectTag;
+  uploader?: {
+    id: string;
+    email: string;
+    display_name?: string;
+  };
+  download_url?: string;
 }
 
 export interface AdminUserSummary {

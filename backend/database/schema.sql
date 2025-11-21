@@ -41,6 +41,24 @@ CREATE TABLE IF NOT EXISTS answers (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 過去問ファイル
+CREATE TABLE IF NOT EXISTS past_exam_files (
+  id SERIAL PRIMARY KEY,
+  subject_tag_id INTEGER REFERENCES subject_tags(id) NOT NULL,
+  title TEXT NOT NULL,
+  file_path TEXT NOT NULL,
+  file_type TEXT NOT NULL,
+  file_size BIGINT,
+  uploaded_by UUID NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 外部キー（profiles への参照）
+ALTER TABLE past_exam_files
+  DROP CONSTRAINT IF EXISTS past_exam_files_uploaded_by_fkey,
+  ADD CONSTRAINT past_exam_files_uploaded_by_profiles_fkey
+  FOREIGN KEY (uploaded_by) REFERENCES profiles(id) ON DELETE CASCADE;
+
 -- インデックス
 CREATE INDEX IF NOT EXISTS idx_threads_user_id ON threads(user_id);
 CREATE INDEX IF NOT EXISTS idx_threads_subject_tag_id ON threads(subject_tag_id);
@@ -48,12 +66,15 @@ CREATE INDEX IF NOT EXISTS idx_threads_status ON threads(status);
 CREATE INDEX IF NOT EXISTS idx_threads_created_at ON threads(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_answers_thread_id ON answers(thread_id);
 CREATE INDEX IF NOT EXISTS idx_answers_user_id ON answers(user_id);
+CREATE INDEX IF NOT EXISTS idx_past_exam_files_subject_tag_id ON past_exam_files(subject_tag_id);
+CREATE INDEX IF NOT EXISTS idx_past_exam_files_created_at ON past_exam_files(created_at DESC);
 
 -- Row Level Security (RLS) ポリシー
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE threads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE answers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE subject_tags ENABLE ROW LEVEL SECURITY;
+ALTER TABLE past_exam_files ENABLE ROW LEVEL SECURITY;
 
 -- profiles: 全員が読み取り可能、自分のみ更新可能
 CREATE POLICY "Profiles are viewable by everyone"
@@ -98,6 +119,14 @@ CREATE POLICY "Users can update own answers"
 CREATE POLICY "Subject tags are viewable by everyone"
   ON subject_tags FOR SELECT
   USING (true);
+
+CREATE POLICY "Past exam files are viewable by everyone"
+  ON past_exam_files FOR SELECT
+  USING (true);
+
+CREATE POLICY "Authenticated users can add past exam files"
+  ON past_exam_files FOR INSERT
+  WITH CHECK (auth.role() = 'authenticated');
 
 -- 初期データ（科目タグのサンプル）
 INSERT INTO subject_tags (name) VALUES

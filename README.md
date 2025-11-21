@@ -14,6 +14,7 @@ Yahoo!知恵袋のような形式で、学生同士が学習に関する質問�
 - **ベストアンサー**: 質問者が最も役立った回答を選択
 - **解決済/未解決**: ステータスで質問を管理
 - **回答締切**: 質問に回答期限を設定可能
+- **過去問アーカイブ**: PDF / 画像をアップロードし、科目ごとに共有・閲覧
 - **フィルタ機能**: ステータスや科目でフィルタリング
 - **管理者ダッシュボード**: 指定した管理者がユーザー一覧の確認やBAN/解除を実行可能
 
@@ -80,7 +81,8 @@ gakusei-chiebukuro/
 4. Authentication > URL Configuration で以下を設定:
    - Site URL: `http://localhost:8080`
    - Redirect URLs: `http://localhost:8080/*`
-
+5. Storage でバケット `past-exams`（プライベート推奨）を作成
+   
 ### 2. バックエンドのセットアップ
 
 ```bash
@@ -103,6 +105,7 @@ npm run dev
 SUPABASE_URL=https://xxxxx.supabase.co
 SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+SUPABASE_PAST_EXAM_BUCKET=past-exams
 PORT=3000
 NODE_ENV=development
 ALLOWED_EMAIL_DOMAIN=ccmailg.meijo-u.ac.jp
@@ -110,6 +113,7 @@ ADMIN_EMAILS=admin1@ccmailg.meijo-u.ac.jp,admin2@ccmailg.meijo-u.ac.jp
 ```
 
 `ADMIN_EMAILS` には管理者権限を付与したいメールアドレスをカンマ区切りで指定します。指定されたユーザーは管理者ダッシュボードへアクセスでき、BAN 操作などを実行できます。
+`SUPABASE_PAST_EXAM_BUCKET` は過去問ファイルを保存する Supabase Storage バケット名です（デフォルト `past-exams`）。
 
 ### 3. フロントエンドのセットアップ
 
@@ -185,6 +189,15 @@ docker-compose up -d --build
 - `GET /api/subject-tags` - 科目タグ一覧取得
 - `POST /api/subject-tags` - 科目タグ作成（管理用）
 
+### 過去問
+
+- `GET /api/past-exams` - 過去問一覧取得（`subject_tag_id` クエリで科目フィルタ）
+- `POST /api/past-exams` - 過去問をアップロード（要ログイン / `multipart/form-data` で `subject_tag_id`, `file`, `title` 任意）
+
+### 管理者
+
+- `GET /api/admin/users` - 管理者: ユーザー一覧取得
+- `PATCH /api/admin/users/:id/ban` - 管理者: BAN/解除
 
 ## テスト方法
 
@@ -214,5 +227,3 @@ npm run build
 ## ライセンス
 
 MIT
-- `GET /api/admin/users` - 管理者: ユーザー一覧取得
-- `PATCH /api/admin/users/:id/ban` - 管理者: BAN/解除

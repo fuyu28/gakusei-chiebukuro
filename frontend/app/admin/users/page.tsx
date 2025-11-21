@@ -15,15 +15,6 @@ export default function AdminUsersPage() {
   const [message, setMessage] = useState('');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (loading) return;
-    if (!user?.is_admin) {
-      router.push('/');
-      return;
-    }
-    loadUsers();
-  }, [loading, user, router, loadUsers]);
-
   const loadUsers = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -36,6 +27,15 @@ export default function AdminUsersPage() {
       setIsLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    if (loading) return;
+    if (!user?.is_admin) {
+      router.push('/');
+      return;
+    }
+    loadUsers();
+  }, [loading, user, router, loadUsers]);
 
   const handleToggleBan = async (targetUser: AdminUser) => {
     try {

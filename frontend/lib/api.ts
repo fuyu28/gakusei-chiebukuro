@@ -11,6 +11,9 @@ import type {
   AdminUsersResponse,
   AdminUserResponse,
   AdminUser,
+  PastExamListResponse,
+  PastExamResponse,
+  PastExamFile,
 } from '@/types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000/api';
@@ -39,8 +42,12 @@ export const isLoggedIn = (): boolean => {
 async function apiFetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const token = getAuthToken();
 
+  const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
+
   const headers = new Headers(options.headers ?? {});
-  headers.set('Content-Type', 'application/json');
+  if (!isFormData && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
 
   if (token) {
     headers.set('Authorization', `Bearer ${token}`);
@@ -51,12 +58,31 @@ async function apiFetch<T>(endpoint: string, options: RequestInit = {}): Promise
     headers,
   });
 
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Request failed' }));
-    throw new Error(error.error || 'API request failed');
+  const responseText = await response.text();
+  let parsedBody: unknown = {};
+
+  if (responseText) {
+    try {
+      parsedBody = JSON.parse(responseText);
+    } catch (error) {
+      console.error('Failed to parse response body', error);
+      parsedBody = { message: responseText };
+    }
   }
 
-  return response.json();
+  const errorMessage = (() => {
+    if (typeof parsedBody === 'object' && parsedBody !== null) {
+      const body = parsedBody as { error?: string; message?: string };
+      return body.error || body.message;
+    }
+    return undefined;
+  })();
+
+  if (!response.ok) {
+    throw new Error(errorMessage || 'API request failed');
+  }
+
+  return parsedBody as T;
 }
 
 // 認証API
@@ -163,6 +189,27 @@ export const deleteAnswer = async (answerId: number): Promise<void> => {
 export const fetchSubjectTags = async () => {
   const data = await apiFetch<TagsResponse>('/subject-tags');
   return data.tags;
+};
+
+// 過去問API
+export const fetchPastExams = async (subjectTagId?: number): Promise<PastExamFile[]> => {
+  const params = new URLSearchParams();
+  if (subjectTagId) {
+    params.append('subject_tag_id', subjectTagId.toString());
+  }
+
+  const query = params.toString() ? `?${params.toString()}` : '';
+  const data = await apiFetch<PastExamListResponse>(`/past-exams${query}`);
+  return data.files;
+};
+
+export const uploadPastExam = async (formData: FormData): Promise<PastExamFile> => {
+  const data = await apiFetch<PastExamResponse>('/past-exams', {
+    method: 'POST',
+    body: formData,
+  });
+
+  return data.file;
 };
 
 // 管理者API

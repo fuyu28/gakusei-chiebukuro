@@ -36,6 +36,20 @@ export interface Answer {
   user?: User;
 }
 
+export interface PastExamFile {
+  id: number;
+  subject_tag_id: number;
+  title: string;
+  file_path: string;
+  file_type: string;
+  file_size?: number | null;
+  uploaded_by: string;
+  created_at: string;
+  download_url?: string;
+  subject_tag?: SubjectTag;
+  uploader?: User;
+}
+
 // 科目タグ型
 export interface SubjectTag {
   id: number;
@@ -88,4 +102,13 @@ export interface AdminUsersResponse {
 export interface AdminUserResponse {
   user: AdminUser;
   message: string;
+}
+
+export interface PastExamListResponse {
+  files: PastExamFile[];
+}
+
+export interface PastExamResponse {
+  file: PastExamFile;
+  message?: string;
 }

@@ -3,6 +3,7 @@ import './globals.css';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { AuthProvider } from '@/lib/auth-context';
+import GlobalSuccessToast from '@/components/GlobalSuccessToast';
 
 export const metadata: Metadata = {
   title: '学生知恵袋',
@@ -18,11 +19,10 @@ export default function RootLayout({
     <html lang="ja">
       <body className="bg-gray-50">
         <AuthProvider>
+          <GlobalSuccessToast />
           <div className="flex min-h-screen flex-col">
             <Header />
-            <div className="flex-1">
-              {children}
-            </div>
+            <div className="flex-1">{children}</div>
             <Footer />
           </div>
         </AuthProvider>
