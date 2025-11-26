@@ -26,6 +26,9 @@ export default function Header() {
           </Link>
 
           <nav className="flex items-center gap-4">
+            <Link href="/past-exams" className="text-gray-700 hover:text-gray-900">
+              過去問
+            </Link>
             {isAuthenticated ? (
               <>
                 <span className="text-gray-700">

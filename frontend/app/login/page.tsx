@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { login } from '@/lib/api';
 import { isValidEmail } from '@/lib/utils';
 import { useAuth } from '@/lib/auth-context';
+import { showGlobalSuccessToast } from '@/lib/toast-events';
 import { SuccessToast } from '@/components/SuccessToast';
 
 export default function LoginPage() {
@@ -32,6 +33,7 @@ export default function LoginPage() {
       await login(email, password);
       await refresh();
       setSuccess('ログインに成功しました');
+      showGlobalSuccessToast('ログインに成功しました');
       router.push('/');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'ログインに失敗しました');

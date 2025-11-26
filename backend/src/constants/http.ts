@@ -30,4 +30,11 @@ export const ERROR_MESSAGES = {
   FAILED_TO_CREATE_ANSWER: 'Failed to create answer',
   FAILED_TO_SELECT_BEST_ANSWER: 'Failed to select best answer',
   FAILED_TO_DELETE_ANSWER: 'Failed to delete answer',
+  SUBJECT_TAG_REQUIRED: 'Subject tag is required',
+  SUBJECT_TAG_NOT_FOUND: 'Subject tag not found',
+  FILE_REQUIRED: 'File is required',
+  INVALID_FILE_TYPE: 'Only PDF, JPEG, and PNG files are allowed',
+  FILE_TOO_LARGE: 'File size exceeds the allowed limit',
+  FAILED_TO_UPLOAD_FILE: 'Failed to upload file',
+  FAILED_TO_GET_PAST_EXAMS: 'Failed to get past exam files',
 } as const;

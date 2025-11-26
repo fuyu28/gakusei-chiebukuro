@@ -29,3 +29,13 @@ export function isMeijoEmail(email: string): boolean {
 export function cn(...classes: (string | boolean | undefined)[]): string {
   return classes.filter(Boolean).join(' ');
 }
+
+export function formatFileSize(bytes?: number | null): string {
+  if (!bytes || bytes <= 0) return '未知のサイズ';
+
+  const units = ['B', 'KB', 'MB', 'GB'];
+  const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+  const size = bytes / 1024 ** index;
+
+  return `${size.toFixed(size >= 10 ? 0 : 1)}${units[index]}`;
+}
