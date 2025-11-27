@@ -151,7 +151,10 @@ export const createThread = async (threadData: {
   return data.thread;
 };
 
-export const updateThread = async (threadId: number, updates: Partial<Thread>): Promise<Thread> => {
+export const updateThread = async (
+  threadId: number,
+  updates: Partial<Omit<Thread, 'deadline'>> & { deadline?: string | null }
+): Promise<Thread> => {
   const data = await apiFetch<ThreadResponse>(`/threads/${threadId}`, {
     method: 'PATCH',
     body: JSON.stringify(updates),
@@ -173,6 +176,14 @@ export const createAnswer = async (threadId: number, content: string): Promise<A
   const data = await apiFetch<AnswerResponse>('/answers', {
     method: 'POST',
     body: JSON.stringify({ thread_id: threadId, content }),
+  });
+  return data.answer;
+};
+
+export const updateAnswer = async (answerId: number, content: string): Promise<Answer> => {
+  const data = await apiFetch<AnswerResponse>(`/answers/${answerId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ content }),
   });
   return data.answer;
 };
