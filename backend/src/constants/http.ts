@@ -1,3 +1,5 @@
+import type { ContentfulStatusCode } from 'hono/utils/http-status';
+
 /**
  * HTTPステータスコード定数
  */
@@ -9,7 +11,7 @@ export const HTTP_STATUS = {
   FORBIDDEN: 403,
   NOT_FOUND: 404,
   INTERNAL_SERVER_ERROR: 500,
-} as const;
+} as const satisfies Record<string, ContentfulStatusCode>;
 
 /**
  * HTTPエラーメッセージ定数

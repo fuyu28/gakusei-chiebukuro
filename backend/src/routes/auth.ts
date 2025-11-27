@@ -3,12 +3,13 @@ import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { supabase, isAllowedEmailDomain } from '../lib/supabase';
 import { authMiddleware } from '../middleware/auth';
-import { asyncHandler, AppError } from '../utils/errors';
+import { handleError, AppError } from '../utils/errors';
 import { HTTP_STATUS } from '../constants/http';
 import { AuthUser } from '../types';
 import { ensureUserProfile } from '../services/profiles';
 
-const auth = new Hono();
+const auth = new Hono<{ Variables: { user: AuthUser } }>();
+auth.onError(handleError);
 
 // サインアップスキーマ
 const signupSchema = z.object({
@@ -24,7 +25,7 @@ const loginSchema = z.object({
 });
 
 // サインアップ
-auth.post('/signup', zValidator('json', signupSchema), asyncHandler(async (c: any) => {
+auth.post('/signup', zValidator('json', signupSchema), async (c) => {
   const { email, password, display_name } = c.req.valid('json');
 
   // メールドメインチェック
@@ -43,7 +44,7 @@ auth.post('/signup', zValidator('json', signupSchema), asyncHandler(async (c: an
     options: {
       emailRedirectTo: process.env.EMAIL_REDIRECT_TO || undefined,
       data: {
-        display_name: display_name || (email as string).split('@')[0],
+        display_name: display_name || email.split('@')[0],
       },
     },
   });
@@ -59,7 +60,7 @@ auth.post('/signup', zValidator('json', signupSchema), asyncHandler(async (c: an
   await ensureUserProfile({
     id: data.user.id,
     email,
-    displayName: display_name || (email as string).split('@')[0],
+    displayName: display_name || email.split('@')[0],
   });
 
   return c.json({
@@ -71,10 +72,10 @@ auth.post('/signup', zValidator('json', signupSchema), asyncHandler(async (c: an
       email: data.user.email,
     },
   });
-}));
+});
 
 // ログイン
-auth.post('/login', zValidator('json', loginSchema), asyncHandler(async (c: any) => {
+auth.post('/login', zValidator('json', loginSchema), async (c) => {
   const { email, password } = c.req.valid('json');
 
   const { data, error } = await supabase.auth.signInWithPassword({
@@ -94,10 +95,10 @@ auth.post('/login', zValidator('json', loginSchema), asyncHandler(async (c: any)
       email: data.user?.email,
     },
   });
-}));
+});
 
 // ログアウト
-auth.post('/logout', authMiddleware, asyncHandler(async (c) => {
+auth.post('/logout', authMiddleware, async (c) => {
   const { error } = await supabase.auth.signOut();
 
   if (error) {
@@ -105,11 +106,11 @@ auth.post('/logout', authMiddleware, asyncHandler(async (c) => {
   }
 
   return c.json({ message: 'Logout successful' });
-}));
+});
 
 // 現在のユーザー情報取得
-auth.get('/me', authMiddleware, asyncHandler(async (c) => {
-  const user = c.get('user') as AuthUser;
+auth.get('/me', authMiddleware, async (c) => {
+  const user = c.get('user');
 
   const profile = await ensureUserProfile({
     id: user.id,
@@ -126,6 +127,6 @@ auth.get('/me', authMiddleware, asyncHandler(async (c) => {
       is_admin: user.is_admin ?? false,
     },
   });
-}));
+});
 
 export default auth;

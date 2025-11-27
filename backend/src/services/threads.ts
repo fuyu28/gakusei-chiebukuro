@@ -92,7 +92,10 @@ export async function createThreadRecord(params: {
   return data as Thread;
 }
 
-export async function updateThreadById(id: number, updates: Partial<Thread>): Promise<Thread> {
+export async function updateThreadById(
+  id: number,
+  updates: Partial<Omit<Thread, 'deadline'>> & { deadline?: string | null }
+): Promise<Thread> {
   const { data, error } = await supabaseAdmin
     .from(TABLES.THREADS)
     .update({

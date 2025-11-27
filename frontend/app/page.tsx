@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, type ChangeEvent } from 'react';
 import Link from 'next/link';
 import { fetchThreads, fetchSubjectTags } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
@@ -48,6 +48,13 @@ export default function Home() {
     loadThreads();
   }, [loadThreads]);
 
+  const handleStatusChange = (event: ChangeEvent<HTMLSelectElement>) => {
+    const value = event.target.value;
+    if (value === 'open' || value === 'resolved' || value === '') {
+      setStatusFilter(value);
+    }
+  };
+
   return (
     <main className="container mx-auto px-4 py-8">
       <div className="mb-8">
@@ -59,8 +66,7 @@ export default function Home() {
             <label className="font-medium text-sm">ステータス:</label>
             <select
               value={statusFilter}
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              onChange={(e) => setStatusFilter(e.target.value as any)}
+              onChange={handleStatusChange}
               className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             >
               <option value="">すべて</option>

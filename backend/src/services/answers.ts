@@ -58,6 +58,24 @@ export async function getAnswerById(answerId: number): Promise<Answer> {
   return data as Answer;
 }
 
+export async function updateAnswerById(answerId: number, content: string): Promise<Answer> {
+  const { data, error } = await supabaseAdmin
+    .from(TABLES.ANSWERS)
+    .update({
+      content,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', answerId)
+    .select()
+    .single();
+
+  if (error || !data) {
+    throw new AppError(error?.message || 'Failed to update answer', HTTP_STATUS.BAD_REQUEST);
+  }
+
+  return data as Answer;
+}
+
 export async function clearBestAnswer(threadId: number): Promise<void> {
   const { error } = await supabaseAdmin
     .from(TABLES.ANSWERS)

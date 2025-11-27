@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { authMiddleware } from '../middleware/auth';
-import { asyncHandler, AppError } from '../utils/errors';
+import { handleError, AppError } from '../utils/errors';
 import { verifyOwnership } from '../utils/authorization';
 import { HTTP_STATUS, ERROR_MESSAGES } from '../constants/http';
 import { TABLES } from '../constants/database';
@@ -12,12 +12,14 @@ import {
   listAnswersByThread,
   createAnswerRecord,
   getAnswerById,
+  updateAnswerById,
   clearBestAnswer,
   setBestAnswer,
   deleteAnswerById,
 } from '../services/answers';
 
-const answers = new Hono();
+const answers = new Hono<{ Variables: { user: AuthUser } }>();
+answers.onError(handleError);
 
 // 回答作成スキーマ
 const createAnswerSchema = z.object({
@@ -25,17 +27,22 @@ const createAnswerSchema = z.object({
   content: z.string().min(1),
 });
 
+// 回答更新スキーマ
+const updateAnswerSchema = z.object({
+  content: z.string().min(1),
+});
+
 // スレッドの回答一覧取得
-answers.get('/threads/:thread_id', asyncHandler(async (c) => {
+answers.get('/threads/:thread_id', async (c) => {
   const thread_id = parseInt(c.req.param('thread_id'));
 
   const answersList = await listAnswersByThread(thread_id);
   return c.json({ answers: answersList });
-}));
+});
 
 // 回答投稿
-answers.post('/', authMiddleware, zValidator('json', createAnswerSchema), asyncHandler(async (c: any) => {
-  const user = c.get('user') as AuthUser;
+answers.post('/', authMiddleware, zValidator('json', createAnswerSchema), async (c) => {
+  const user = c.get('user');
   const { thread_id, content } = c.req.valid('json');
 
   // スレッドの存在確認と締切チェック
@@ -54,12 +61,26 @@ answers.post('/', authMiddleware, zValidator('json', createAnswerSchema), asyncH
   // 回答を投稿
   const answer = await createAnswerRecord({ thread_id, content, user_id: user.id });
 
-  return c.json({ message: 'Answer created successfully', answer }, HTTP_STATUS.CREATED as any);
-}));
+  return c.json({ message: 'Answer created successfully', answer }, HTTP_STATUS.CREATED);
+});
+
+// 回答更新
+answers.patch('/:id', authMiddleware, zValidator('json', updateAnswerSchema), async (c) => {
+  const user = c.get('user');
+  const answer_id = parseInt(c.req.param('id'));
+  const { content } = c.req.valid('json');
+
+  // 回答の所有者確認
+  await verifyOwnership(TABLES.ANSWERS, answer_id, user.id);
+
+  const updatedAnswer = await updateAnswerById(answer_id, content);
+
+  return c.json({ message: 'Answer updated successfully', answer: updatedAnswer });
+});
 
 // ベストアンサー選択
-answers.patch('/:id/best', authMiddleware, asyncHandler(async (c) => {
-  const user = c.get('user') as AuthUser;
+answers.patch('/:id/best', authMiddleware, async (c) => {
+  const user = c.get('user');
   const answer_id = parseInt(c.req.param('id'));
 
   // 回答の取得
@@ -85,11 +106,11 @@ answers.patch('/:id/best', authMiddleware, asyncHandler(async (c) => {
     message: 'Best answer selected successfully',
     answer: updatedAnswer,
   });
-}));
+});
 
 // 回答削除
-answers.delete('/:id', authMiddleware, asyncHandler(async (c) => {
-  const user = c.get('user') as AuthUser;
+answers.delete('/:id', authMiddleware, async (c) => {
+  const user = c.get('user');
   const answer_id = parseInt(c.req.param('id'));
 
   // 回答の所有者確認
@@ -99,6 +120,6 @@ answers.delete('/:id', authMiddleware, asyncHandler(async (c) => {
   await deleteAnswerById(answer_id);
 
   return c.json({ message: 'Answer deleted successfully' });
-}));
+});
 
 export default answers;

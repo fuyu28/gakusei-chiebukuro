@@ -1,11 +1,12 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
-import { asyncHandler } from '../utils/errors';
+import { handleError } from '../utils/errors';
 import { HTTP_STATUS } from '../constants/http';
 import { listSubjectTags, createSubjectTag } from '../services/subjectTags';
 
 const subjectTags = new Hono();
+subjectTags.onError(handleError);
 
 // 科目タグ作成スキーマ
 const createTagSchema = z.object({
@@ -13,18 +14,18 @@ const createTagSchema = z.object({
 });
 
 // 科目タグ一覧取得
-subjectTags.get('/', asyncHandler(async (c) => {
+subjectTags.get('/', async (c) => {
   const tags = await listSubjectTags();
   return c.json({ tags });
-}));
+});
 
 // 科目タグ作成（管理者用 - 後で権限チェックを追加）
-subjectTags.post('/', zValidator('json', createTagSchema), asyncHandler(async (c: any) => {
+subjectTags.post('/', zValidator('json', createTagSchema), async (c) => {
   const { name } = c.req.valid('json');
 
   const tag = await createSubjectTag(name);
 
-  return c.json({ message: 'Subject tag created successfully', tag }, HTTP_STATUS.CREATED as any);
-}));
+  return c.json({ message: 'Subject tag created successfully', tag }, HTTP_STATUS.CREATED);
+});
 
 export default subjectTags;

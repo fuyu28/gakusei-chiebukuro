@@ -1,13 +1,14 @@
 import { Hono } from 'hono';
-import { asyncHandler, AppError } from '../utils/errors';
+import { handleError, AppError } from '../utils/errors';
 import { listPastExamFiles, uploadPastExamFile } from '../services/pastExams';
 import { authMiddleware } from '../middleware/auth';
 import { ERROR_MESSAGES, HTTP_STATUS } from '../constants/http';
 import { AuthUser } from '../types';
 
-const pastExams = new Hono();
+const pastExams = new Hono<{ Variables: { user: AuthUser } }>();
+pastExams.onError(handleError);
 // 過去問一覧取得（科目でフィルタ可能）
-pastExams.get('/', asyncHandler(async (c) => {
+pastExams.get('/', async (c) => {
   const subjectTagParam = c.req.query('subject_tag_id');
   const subjectTagId = subjectTagParam ? parseInt(subjectTagParam, 10) : undefined;
 
@@ -17,11 +18,11 @@ pastExams.get('/', asyncHandler(async (c) => {
 
   const files = await listPastExamFiles(subjectTagId);
   return c.json({ files });
-}));
+});
 
 // 過去問アップロード
-pastExams.post('/', authMiddleware, asyncHandler(async (c: any) => {
-  const user = c.get('user') as AuthUser;
+pastExams.post('/', authMiddleware, async (c) => {
+  const user = c.get('user');
   const formData = await c.req.parseBody();
 
   const subjectTagIdRaw = formData['subject_tag_id'];
@@ -45,7 +46,7 @@ pastExams.post('/', authMiddleware, asyncHandler(async (c: any) => {
     title,
   });
 
-  return c.json({ message: 'Past exam uploaded successfully', file }, HTTP_STATUS.CREATED as any);
-}));
+  return c.json({ message: 'Past exam uploaded successfully', file }, HTTP_STATUS.CREATED);
+});
 
 export default pastExams;

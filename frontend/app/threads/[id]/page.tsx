@@ -10,6 +10,7 @@ import {
   selectBestAnswer,
   deleteAnswer,
   updateThread,
+  updateAnswer,
 } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
 import type { Thread, Answer } from '@/types';
@@ -26,7 +27,19 @@ export default function ThreadDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [isEditingThread, setIsEditingThread] = useState(false);
+  const [editThreadTitle, setEditThreadTitle] = useState('');
+  const [editThreadContent, setEditThreadContent] = useState('');
+  const [editThreadDeadline, setEditThreadDeadline] = useState('');
+  const [editingAnswerId, setEditingAnswerId] = useState<number | null>(null);
+  const [editAnswerContent, setEditAnswerContent] = useState('');
   const { user: currentUser, isAuthenticated } = useAuth();
+
+  const formatDateTimeLocal = (value: string) => {
+    const date = new Date(value);
+    const offset = date.getTimezoneOffset() * 60000;
+    return new Date(date.getTime() - offset).toISOString().slice(0, 16);
+  };
 
   const loadData = useCallback(async () => {
     try {
@@ -49,6 +62,49 @@ export default function ThreadDetailPage() {
     loadData();
   }, [loadData]);
 
+  const startThreadEdit = () => {
+    if (!thread) return;
+    setError('');
+    setSuccess('');
+    setEditThreadTitle(thread.title);
+    setEditThreadContent(thread.content);
+    setEditThreadDeadline(thread.deadline ? formatDateTimeLocal(thread.deadline) : '');
+    setIsEditingThread(true);
+  };
+
+  const handleUpdateThread = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!thread) return;
+    setError('');
+    setSuccess('');
+
+    if (!editThreadTitle.trim() || !editThreadContent.trim()) {
+      setError('タイトルと内容は必須です');
+      return;
+    }
+
+    try {
+      const deadlineISO = editThreadDeadline
+        ? new Date(editThreadDeadline).toISOString()
+        : null;
+
+      await updateThread(threadId, {
+        title: editThreadTitle.trim(),
+        content: editThreadContent.trim(),
+        deadline: deadlineISO,
+      });
+      setIsEditingThread(false);
+      setSuccess('質問を更新しました');
+      await loadData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '質問の更新に失敗しました');
+    }
+  };
+
+  const cancelThreadEdit = () => {
+    setIsEditingThread(false);
+  };
+
   const handleSubmitAnswer = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
@@ -67,6 +123,38 @@ export default function ThreadDetailPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : '回答の投稿に失敗しました');
     }
+  };
+
+  const startEditAnswer = (answer: Answer) => {
+    setError('');
+    setSuccess('');
+    setEditingAnswerId(answer.id);
+    setEditAnswerContent(answer.content);
+  };
+
+  const handleUpdateAnswerContent = async (answerId: number) => {
+    setError('');
+    setSuccess('');
+
+    if (!editAnswerContent.trim()) {
+      setError('回答内容を入力してください');
+      return;
+    }
+
+    try {
+      await updateAnswer(answerId, editAnswerContent.trim());
+      setSuccess('回答を更新しました');
+      setEditingAnswerId(null);
+      setEditAnswerContent('');
+      await loadData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '回答の更新に失敗しました');
+    }
+  };
+
+  const cancelEditAnswer = () => {
+    setEditingAnswerId(null);
+    setEditAnswerContent('');
   };
 
   const handleSelectBestAnswer = async (answerId: number) => {
@@ -150,45 +238,126 @@ export default function ThreadDetailPage() {
 
         {/* スレッド詳細 */}
         <div className="bg-white rounded-lg shadow-md p-8 mb-8">
-          <div className="flex items-start justify-between mb-6">
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-4 flex-wrap">
-                <h1 className="text-3xl font-bold">{thread.title}</h1>
-                <span
-                  className={`px-3 py-1 text-sm font-medium rounded-full ${
-                    thread.status === 'resolved'
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-blue-100 text-blue-800'
-                  }`}
-                >
-                  {thread.status === 'resolved' ? '解決済み' : '未解決'}
-                </span>
+          {isEditingThread ? (
+            <form onSubmit={handleUpdateThread} className="space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex items-center gap-3 flex-1 min-w-[240px]">
+                  <input
+                    type="text"
+                    value={editThreadTitle}
+                    onChange={(e) => setEditThreadTitle(e.target.value)}
+                    maxLength={200}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="タイトルを入力"
+                    required
+                  />
+                  <span
+                    className={`px-3 py-1 text-sm font-medium rounded-full ${
+                      thread.status === 'resolved'
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-blue-100 text-blue-800'
+                    }`}
+                  >
+                    {thread.status === 'resolved' ? '解決済み' : '未解決'}
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                  >
+                    保存
+                  </button>
+                  <button
+                    type="button"
+                    onClick={cancelThreadEdit}
+                    className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+                  >
+                    キャンセル
+                  </button>
+                </div>
               </div>
-            </div>
-            {isAuthor && thread.status !== 'resolved' && (
-              <button
-                onClick={handleResolveThread}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
-              >
-                解決済みにする
-              </button>
-            )}
-          </div>
 
-          <p className="text-lg mb-6 whitespace-pre-wrap">{thread.content}</p>
+              <textarea
+                value={editThreadContent}
+                onChange={(e) => setEditThreadContent(e.target.value)}
+                required
+                rows={6}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
 
-          <div className="flex flex-wrap gap-4 text-sm text-gray-600">
-            {thread.subject_tag && (
-              <span className="px-3 py-1 bg-gray-100 rounded-full">
-                {thread.subject_tag.name}
-              </span>
-            )}
-            <span>{thread.user?.display_name || thread.user?.email}</span>
-            <span>{formatDate(thread.created_at)}</span>
-            {thread.deadline && (
-              <span className="text-red-600">締切: {formatDate(thread.deadline)}</span>
-            )}
-          </div>
+              <div className="flex flex-wrap gap-4 text-sm text-gray-600 items-center">
+                {thread.subject_tag && (
+                  <span className="px-3 py-1 bg-gray-100 rounded-full">
+                    {thread.subject_tag.name}
+                  </span>
+                )}
+                <span>{thread.user?.display_name || thread.user?.email}</span>
+                <span>{formatDate(thread.created_at)}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-700">締切</span>
+                  <input
+                    type="datetime-local"
+                    value={editThreadDeadline}
+                    onChange={(e) => setEditThreadDeadline(e.target.value)}
+                    className="px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+            </form>
+          ) : (
+            <>
+              <div className="flex items-start justify-between mb-6">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-4 flex-wrap">
+                    <h1 className="text-3xl font-bold">{thread.title}</h1>
+                    <span
+                      className={`px-3 py-1 text-sm font-medium rounded-full ${
+                        thread.status === 'resolved'
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-blue-100 text-blue-800'
+                      }`}
+                    >
+                      {thread.status === 'resolved' ? '解決済み' : '未解決'}
+                    </span>
+                  </div>
+                </div>
+                {isAuthor && (
+                  <div className="flex gap-2">
+                    {thread.status !== 'resolved' && (
+                      <button
+                        onClick={handleResolveThread}
+                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+                      >
+                        解決済みにする
+                      </button>
+                    )}
+                    <button
+                      onClick={startThreadEdit}
+                      className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+                    >
+                      編集
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <p className="text-lg mb-6 whitespace-pre-wrap">{thread.content}</p>
+
+              <div className="flex flex-wrap gap-4 text-sm text-gray-600">
+                {thread.subject_tag && (
+                  <span className="px-3 py-1 bg-gray-100 rounded-full">
+                    {thread.subject_tag.name}
+                  </span>
+                )}
+                <span>{thread.user?.display_name || thread.user?.email}</span>
+                <span>{formatDate(thread.created_at)}</span>
+                {thread.deadline && (
+                  <span className="text-red-600">締切: {formatDate(thread.deadline)}</span>
+                )}
+              </div>
+            </>
+          )}
         </div>
 
         {/* 回答セクション */}
@@ -216,7 +385,34 @@ export default function ThreadDetailPage() {
                     </div>
                   )}
 
-                  <p className="text-lg mb-4 whitespace-pre-wrap">{answer.content}</p>
+                  {editingAnswerId === answer.id ? (
+                    <div className="space-y-4 mb-2">
+                      <textarea
+                        value={editAnswerContent}
+                        onChange={(e) => setEditAnswerContent(e.target.value)}
+                        rows={5}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                      <div className="flex justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateAnswerContent(answer.id)}
+                          className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition"
+                        >
+                          保存
+                        </button>
+                        <button
+                          type="button"
+                          onClick={cancelEditAnswer}
+                          className="px-4 py-2 border border-gray-300 text-sm rounded-lg hover:bg-gray-50 transition"
+                        >
+                          キャンセル
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-lg mb-4 whitespace-pre-wrap">{answer.content}</p>
+                  )}
 
                   <div className="flex items-center justify-between">
                     <div className="flex gap-4 text-sm text-gray-600">
@@ -237,14 +433,24 @@ export default function ThreadDetailPage() {
                             ベストアンサーに選ぶ
                           </button>
                         )}
-                      {currentUser && currentUser.id === answer.user_id && (
-                        <button
-                          onClick={() => handleDeleteAnswer(answer.id)}
-                          className="px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition"
-                        >
-                          削除
-                        </button>
-                      )}
+                      {currentUser &&
+                        currentUser.id === answer.user_id &&
+                        editingAnswerId !== answer.id && (
+                          <>
+                            <button
+                              onClick={() => startEditAnswer(answer)}
+                              className="px-4 py-2 border border-gray-300 text-sm rounded-lg hover:bg-gray-50 transition"
+                            >
+                              編集
+                            </button>
+                            <button
+                              onClick={() => handleDeleteAnswer(answer.id)}
+                              className="px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition"
+                            >
+                              削除
+                            </button>
+                          </>
+                        )}
                     </div>
                   </div>
                 </div>
