@@ -1,7 +1,8 @@
 import { Hono } from 'hono';
 import { handleError, AppError } from '../utils/errors';
-import { listPastExamFiles, uploadPastExamFile } from '../services/pastExams';
+import { listPastExamFiles, uploadPastExamFile, deletePastExamFileById } from '../services/pastExams';
 import { authMiddleware } from '../middleware/auth';
+import { adminMiddleware } from '../middleware/admin';
 import { ERROR_MESSAGES, HTTP_STATUS } from '../constants/http';
 import { AuthUser } from '../types';
 
@@ -47,6 +48,18 @@ pastExams.post('/', authMiddleware, async (c) => {
   });
 
   return c.json({ message: 'Past exam uploaded successfully', file }, HTTP_STATUS.CREATED);
+});
+
+pastExams.delete('/:id', authMiddleware, adminMiddleware, async (c) => {
+  const pastExamId = parseInt(c.req.param('id'), 10);
+
+  if (Number.isNaN(pastExamId)) {
+    throw new AppError(ERROR_MESSAGES.FAILED_TO_DELETE_PAST_EXAM, HTTP_STATUS.BAD_REQUEST);
+  }
+
+  await deletePastExamFileById(pastExamId);
+
+  return c.json({ message: 'Past exam deleted successfully' });
 });
 
 export default pastExams;

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, FormEvent, useCallback } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   fetchThreadDetail,
@@ -11,6 +11,7 @@ import {
   deleteAnswer,
   updateThread,
   updateAnswer,
+  deleteThread,
 } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
 import type { Thread, Answer } from '@/types';
@@ -20,6 +21,7 @@ import { SuccessToast } from '@/components/SuccessToast';
 export default function ThreadDetailPage() {
   const params = useParams();
   const threadId = Number(params.id);
+  const router = useRouter();
 
   const [thread, setThread] = useState<Thread | null>(null);
   const [answers, setAnswers] = useState<Answer[]>([]);
@@ -33,7 +35,10 @@ export default function ThreadDetailPage() {
   const [editThreadDeadline, setEditThreadDeadline] = useState('');
   const [editingAnswerId, setEditingAnswerId] = useState<number | null>(null);
   const [editAnswerContent, setEditAnswerContent] = useState('');
+  const [isDeletingThread, setIsDeletingThread] = useState(false);
+  const [deletingAnswerId, setDeletingAnswerId] = useState<number | null>(null);
   const { user: currentUser, isAuthenticated } = useAuth();
+  const isAdmin = Boolean(currentUser?.is_admin);
 
   const formatDateTimeLocal = (value: string) => {
     const date = new Date(value);
@@ -177,11 +182,16 @@ export default function ThreadDetailPage() {
     }
 
     try {
+      setError('');
+      setSuccess('');
+      setDeletingAnswerId(answerId);
       await deleteAnswer(answerId);
       setSuccess('回答を削除しました');
       await loadData();
     } catch (err) {
       setError(err instanceof Error ? err.message : '回答の削除に失敗しました');
+    } finally {
+      setDeletingAnswerId(null);
     }
   };
 
@@ -196,6 +206,25 @@ export default function ThreadDetailPage() {
       await loadData();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'スレッドの更新に失敗しました');
+    }
+  };
+
+  const handleDeleteThread = async () => {
+    if (!confirm('このスレッドを削除しますか？')) {
+      return;
+    }
+
+    try {
+      setError('');
+      setSuccess('');
+      setIsDeletingThread(true);
+      await deleteThread(threadId);
+      setSuccess('スレッドを削除しました');
+      router.push('/');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'スレッドの削除に失敗しました');
+    } finally {
+      setIsDeletingThread(false);
     }
   };
 
@@ -322,22 +351,39 @@ export default function ThreadDetailPage() {
                     </span>
                   </div>
                 </div>
-                {isAuthor && (
+                {(isAuthor || isAdmin) && (
                   <div className="flex gap-2">
-                    {thread.status !== 'resolved' && (
+                    {isAuthor && (
+                      <>
+                        {thread.status !== 'resolved' && (
+                          <button
+                            onClick={handleResolveThread}
+                            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+                          >
+                            解決済みにする
+                          </button>
+                        )}
+                        <button
+                          onClick={startThreadEdit}
+                          className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+                        >
+                          編集
+                        </button>
+                      </>
+                    )}
+                    {isAdmin && (
                       <button
-                        onClick={handleResolveThread}
-                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+                        onClick={handleDeleteThread}
+                        disabled={isDeletingThread}
+                        className={`px-4 py-2 rounded-lg text-white transition ${
+                          isDeletingThread
+                            ? 'bg-red-400 cursor-not-allowed'
+                            : 'bg-red-600 hover:bg-red-700'
+                        }`}
                       >
-                        解決済みにする
+                        {isDeletingThread ? '削除中...' : '削除'}
                       </button>
                     )}
-                    <button
-                      onClick={startThreadEdit}
-                      className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-                    >
-                      編集
-                    </button>
                   </div>
                 )}
               </div>
@@ -372,89 +418,98 @@ export default function ThreadDetailPage() {
             </div>
           ) : (
             <div className="space-y-4">
-              {answers.map((answer) => (
-                <div
-                  key={answer.id}
-                  className={`bg-white rounded-lg shadow-md p-6 ${
-                    answer.is_best_answer ? 'border-2 border-green-500' : ''
-                  }`}
-                >
-                  {answer.is_best_answer && (
-                    <div className="inline-block px-3 py-1 bg-green-600 text-white text-sm font-medium rounded-full mb-3">
-                      ベストアンサー
-                    </div>
-                  )}
+              {answers.map((answer) => {
+                const isAnswerOwner = currentUser?.id === answer.user_id;
+                const canDeleteAnswer = isAdmin || isAnswerOwner;
+                const canEditAnswer = isAnswerOwner && editingAnswerId !== answer.id;
 
-                  {editingAnswerId === answer.id ? (
-                    <div className="space-y-4 mb-2">
-                      <textarea
-                        value={editAnswerContent}
-                        onChange={(e) => setEditAnswerContent(e.target.value)}
-                        rows={5}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                      <div className="flex justify-end gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleUpdateAnswerContent(answer.id)}
-                          className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition"
-                        >
-                          保存
-                        </button>
-                        <button
-                          type="button"
-                          onClick={cancelEditAnswer}
-                          className="px-4 py-2 border border-gray-300 text-sm rounded-lg hover:bg-gray-50 transition"
-                        >
-                          キャンセル
-                        </button>
+                return (
+                  <div
+                    key={answer.id}
+                    className={`bg-white rounded-lg shadow-md p-6 ${
+                      answer.is_best_answer ? 'border-2 border-green-500' : ''
+                    }`}
+                  >
+                    {answer.is_best_answer && (
+                      <div className="inline-block px-3 py-1 bg-green-600 text-white text-sm font-medium rounded-full mb-3">
+                        ベストアンサー
                       </div>
-                    </div>
-                  ) : (
-                    <p className="text-lg mb-4 whitespace-pre-wrap">{answer.content}</p>
-                  )}
+                    )}
 
-                  <div className="flex items-center justify-between">
-                    <div className="flex gap-4 text-sm text-gray-600">
-                      <span className="font-medium">
-                        {answer.user?.display_name || answer.user?.email}
-                      </span>
-                      <span>{formatDate(answer.created_at)}</span>
-                    </div>
-
-                    <div className="flex gap-2">
-                      {isAuthor &&
-                        !answer.is_best_answer &&
-                        thread.status !== 'resolved' && (
+                    {editingAnswerId === answer.id ? (
+                      <div className="space-y-4 mb-2">
+                        <textarea
+                          value={editAnswerContent}
+                          onChange={(e) => setEditAnswerContent(e.target.value)}
+                          rows={5}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                        <div className="flex justify-end gap-2">
                           <button
-                            onClick={() => handleSelectBestAnswer(answer.id)}
-                            className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition"
+                            type="button"
+                            onClick={() => handleUpdateAnswerContent(answer.id)}
+                            className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition"
                           >
-                            ベストアンサーに選ぶ
+                            保存
+                          </button>
+                          <button
+                            type="button"
+                            onClick={cancelEditAnswer}
+                            className="px-4 py-2 border border-gray-300 text-sm rounded-lg hover:bg-gray-50 transition"
+                          >
+                            キャンセル
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-lg mb-4 whitespace-pre-wrap">{answer.content}</p>
+                    )}
+
+                    <div className="flex items-center justify-between">
+                      <div className="flex gap-4 text-sm text-gray-600">
+                        <span className="font-medium">
+                          {answer.user?.display_name || answer.user?.email}
+                        </span>
+                        <span>{formatDate(answer.created_at)}</span>
+                      </div>
+
+                      <div className="flex gap-2">
+                        {isAuthor &&
+                          !answer.is_best_answer &&
+                          thread.status !== 'resolved' && (
+                            <button
+                              onClick={() => handleSelectBestAnswer(answer.id)}
+                              className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition"
+                            >
+                              ベストアンサーに選ぶ
+                            </button>
+                          )}
+                        {canEditAnswer && (
+                          <button
+                            onClick={() => startEditAnswer(answer)}
+                            className="px-4 py-2 border border-gray-300 text-sm rounded-lg hover:bg-gray-50 transition"
+                          >
+                            編集
                           </button>
                         )}
-                      {currentUser &&
-                        currentUser.id === answer.user_id &&
-                        editingAnswerId !== answer.id && (
-                          <>
-                            <button
-                              onClick={() => startEditAnswer(answer)}
-                              className="px-4 py-2 border border-gray-300 text-sm rounded-lg hover:bg-gray-50 transition"
-                            >
-                              編集
-                            </button>
-                            <button
-                              onClick={() => handleDeleteAnswer(answer.id)}
-                              className="px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition"
-                            >
-                              削除
-                            </button>
-                          </>
+                        {canDeleteAnswer && (
+                          <button
+                            onClick={() => handleDeleteAnswer(answer.id)}
+                            disabled={deletingAnswerId === answer.id || editingAnswerId === answer.id}
+                            className={`px-4 py-2 text-sm rounded-lg text-white transition ${
+                              deletingAnswerId === answer.id || editingAnswerId === answer.id
+                                ? 'bg-red-400 cursor-not-allowed'
+                                : 'bg-red-600 hover:bg-red-700'
+                            }`}
+                          >
+                            {deletingAnswerId === answer.id ? '削除中...' : '削除'}
+                          </button>
                         )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

@@ -2,9 +2,9 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { authMiddleware } from '../middleware/auth';
-import { handleError } from '../utils/errors';
+import { handleError, AppError } from '../utils/errors';
 import { verifyOwnership } from '../utils/authorization';
-import { HTTP_STATUS } from '../constants/http';
+import { ERROR_MESSAGES, HTTP_STATUS } from '../constants/http';
 import { TABLES } from '../constants/database';
 import { AuthUser } from '../types';
 import {
@@ -100,8 +100,16 @@ threads.delete('/:id', authMiddleware, async (c) => {
   const user = c.get('user');
   const id = parseInt(c.req.param('id'));
 
-  // スレッドの所有者確認
-  await verifyOwnership(TABLES.THREADS, id, user.id);
+  if (Number.isNaN(id)) {
+    throw new AppError(ERROR_MESSAGES.FAILED_TO_DELETE_THREAD, HTTP_STATUS.BAD_REQUEST);
+  }
+
+  const thread = await getThreadById(id);
+
+  if (!user.is_admin && thread.user_id !== user.id) {
+    throw new AppError(ERROR_MESSAGES.UNAUTHORIZED, HTTP_STATUS.FORBIDDEN);
+  }
+
   await deleteThreadById(id);
 
   return c.json({ message: 'Thread deleted successfully' });

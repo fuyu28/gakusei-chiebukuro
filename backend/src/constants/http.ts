@@ -39,4 +39,6 @@ export const ERROR_MESSAGES = {
   FILE_TOO_LARGE: 'File size exceeds the allowed limit',
   FAILED_TO_UPLOAD_FILE: 'Failed to upload file',
   FAILED_TO_GET_PAST_EXAMS: 'Failed to get past exam files',
+  FAILED_TO_DELETE_PAST_EXAM: 'Failed to delete past exam file',
+  PAST_EXAM_NOT_FOUND: 'Past exam file not found',
 } as const;

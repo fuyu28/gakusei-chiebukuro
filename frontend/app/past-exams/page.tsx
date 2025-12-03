@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState, FormEvent, ChangeEvent } from 'react';
-import { fetchPastExams, fetchSubjectTags, uploadPastExam } from '@/lib/api';
+import { fetchPastExams, fetchSubjectTags, uploadPastExam, deletePastExam } from '@/lib/api';
 import { formatDate, formatFileSize } from '@/lib/utils';
 import type { PastExamFile, SubjectTag } from '@/types';
 import { useAuth } from '@/lib/auth-context';
@@ -14,9 +14,11 @@ export default function PastExamsPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [title, setTitle] = useState('');
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+  const isAdmin = Boolean(user?.is_admin);
 
   const fileTypeLabel = (mime: string) => {
     if (!mime) return 'FILE';
@@ -95,6 +97,24 @@ export default function PastExamsPage() {
       setError(err instanceof Error ? err.message : 'アップロードに失敗しました');
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleDelete = async (fileId: number) => {
+    if (!confirm('この資料を削除しますか？')) return;
+
+    setError('');
+    setSuccess('');
+
+    try {
+      setDeletingId(fileId);
+      await deletePastExam(fileId);
+      setSuccess('資料を削除しました');
+      await loadFiles();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '削除に失敗しました');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -269,15 +289,29 @@ export default function PastExamsPage() {
                     </div>
                   </div>
 
-                  {file.file_type.startsWith('image/') && file.download_url && (
-                    // Next.js の最適化ルールを避け、署名付きURLのプレビューのみ軽量表示
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={file.download_url}
-                      alt={file.title}
-                      className="hidden h-28 w-24 rounded-lg object-cover md:block"
-                    />
-                  )}
+                  <div className="flex flex-col items-end gap-3">
+                    {isAdmin && (
+                      <button
+                        onClick={() => handleDelete(file.id)}
+                        disabled={deletingId === file.id}
+                        className={`rounded-lg bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100 ${
+                          deletingId === file.id ? 'cursor-not-allowed opacity-60' : ''
+                        }`}
+                      >
+                        {deletingId === file.id ? '削除中...' : '削除'}
+                      </button>
+                    )}
+
+                    {file.file_type.startsWith('image/') && file.download_url && (
+                      // Next.js の最適化ルールを避け、署名付きURLのプレビューのみ軽量表示
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={file.download_url}
+                        alt={file.title}
+                        className="hidden h-28 w-24 rounded-lg object-cover md:block"
+                      />
+                    )}
+                  </div>
                 </div>
               </div>
             ))}

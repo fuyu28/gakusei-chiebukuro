@@ -113,8 +113,15 @@ answers.delete('/:id', authMiddleware, async (c) => {
   const user = c.get('user');
   const answer_id = parseInt(c.req.param('id'));
 
-  // 回答の所有者確認
-  await verifyOwnership(TABLES.ANSWERS, answer_id, user.id);
+  if (Number.isNaN(answer_id)) {
+    throw new AppError(ERROR_MESSAGES.FAILED_TO_DELETE_ANSWER, HTTP_STATUS.BAD_REQUEST);
+  }
+
+  const answer = await getAnswerById(answer_id);
+
+  if (!user.is_admin && answer.user_id !== user.id) {
+    throw new AppError(ERROR_MESSAGES.UNAUTHORIZED, HTTP_STATUS.FORBIDDEN);
+  }
 
   // 削除
   await deleteAnswerById(answer_id);
