@@ -91,6 +91,15 @@ export interface TagsResponse {
   tags: SubjectTag[];
 }
 
+export interface SubjectTagResponse {
+  tag: SubjectTag;
+  message?: string;
+}
+
+export interface MessageResponse {
+  message: string;
+}
+
 export interface UserResponse {
   user: User;
 }

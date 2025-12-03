@@ -30,3 +30,29 @@ export async function createSubjectTag(name: string): Promise<SubjectTag> {
 
   return data as SubjectTag;
 }
+
+export async function updateSubjectTag(id: number, name: string): Promise<SubjectTag> {
+  const { data, error } = await supabaseAdmin
+    .from(TABLES.SUBJECT_TAGS)
+    .update({ name })
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error || !data) {
+    throw new AppError(error?.message || 'Failed to update subject tag', HTTP_STATUS.BAD_REQUEST);
+  }
+
+  return data as SubjectTag;
+}
+
+export async function deleteSubjectTag(id: number): Promise<void> {
+  const { error } = await supabaseAdmin
+    .from(TABLES.SUBJECT_TAGS)
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    throw new AppError(error.message, HTTP_STATUS.BAD_REQUEST);
+  }
+}

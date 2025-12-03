@@ -14,6 +14,8 @@ import type {
   PastExamListResponse,
   PastExamResponse,
   PastExamFile,
+  SubjectTagResponse,
+  MessageResponse,
 } from '@/types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000/api';
@@ -200,6 +202,28 @@ export const deleteAnswer = async (answerId: number): Promise<void> => {
 export const fetchSubjectTags = async () => {
   const data = await apiFetch<TagsResponse>('/subject-tags');
   return data.tags;
+};
+
+export const createSubjectTag = async (name: string) => {
+  const data = await apiFetch<SubjectTagResponse>('/subject-tags', {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+  return data.tag;
+};
+
+export const updateSubjectTag = async (id: number, name: string) => {
+  const data = await apiFetch<SubjectTagResponse>(`/subject-tags/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ name }),
+  });
+  return data.tag;
+};
+
+export const deleteSubjectTag = async (id: number) => {
+  return apiFetch<MessageResponse>(`/subject-tags/${id}`, {
+    method: 'DELETE',
+  });
 };
 
 // 過去問API

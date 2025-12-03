@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { fetchAdminUsers, updateUserBanStatus } from '@/lib/api';
 import type { AdminUser } from '@/types';
 import { useAuth } from '@/lib/auth-context';
+import AdminNav from '@/components/AdminNav';
 
 export default function AdminUsersPage() {
   const router = useRouter();
@@ -80,6 +81,8 @@ export default function AdminUsersPage() {
         <h1 className="text-3xl font-bold">管理者ダッシュボード</h1>
         <p className="text-gray-600 mt-2">ユーザーのBAN/解除などを管理できます</p>
       </div>
+
+      <AdminNav />
 
       {error && (
         <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg">
