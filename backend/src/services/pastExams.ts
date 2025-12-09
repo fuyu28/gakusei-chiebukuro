@@ -5,7 +5,15 @@ import { ERROR_MESSAGES, HTTP_STATUS } from '../constants/http';
 import type { PastExamFileWithRelations } from '../types';
 
 const PAST_EXAM_BUCKET = process.env.SUPABASE_PAST_EXAM_BUCKET || 'past-exams';
-const ALLOWED_MIME_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
+const ALLOWED_MIME_TYPES = [
+  'application/pdf',
+  'image/jpeg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+  'image/heic',
+  'image/heif',
+];
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const SIGNED_URL_EXPIRATION = 60 * 60; // 1 hour
 
