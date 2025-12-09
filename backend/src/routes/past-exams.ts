@@ -6,6 +6,34 @@ import { adminMiddleware } from '../middleware/admin';
 import { ERROR_MESSAGES, HTTP_STATUS } from '../constants/http';
 import { AuthUser } from '../types';
 
+function parseSubjectTagId(raw: unknown): number {
+  const parsed = typeof raw === 'string' ? parseInt(raw, 10) : undefined;
+  if (!parsed || Number.isNaN(parsed)) {
+    throw new AppError(ERROR_MESSAGES.SUBJECT_TAG_REQUIRED, HTTP_STATUS.BAD_REQUEST);
+  }
+  return parsed;
+}
+
+function ensureFiles(input: unknown): File[] {
+  const files = Array.isArray(input) ? input : [input];
+
+  if (files.length === 0 || files.some((item) => !(item instanceof File))) {
+    throw new AppError(ERROR_MESSAGES.FILE_REQUIRED, HTTP_STATUS.BAD_REQUEST);
+  }
+
+  return files as File[];
+}
+
+function parseIdParam(idParam: string, errorMessage: string): number {
+  const parsed = parseInt(idParam, 10);
+
+  if (Number.isNaN(parsed)) {
+    throw new AppError(errorMessage, HTTP_STATUS.BAD_REQUEST);
+  }
+
+  return parsed;
+}
+
 const pastExams = new Hono<{ Variables: { user: AuthUser } }>();
 pastExams.onError(handleError);
 // 過去問一覧取得（科目でフィルタ可能）
@@ -26,21 +54,9 @@ pastExams.post('/', authMiddleware, async (c) => {
   const user = c.get('user');
   const formData = await c.req.parseBody();
 
-  const subjectTagIdRaw = formData['subject_tag_id'];
+  const subjectTagId = parseSubjectTagId(formData['subject_tag_id']);
   const title = typeof formData['title'] === 'string' ? formData['title'] : undefined;
-  const fileInput = formData['file'];
-
-  const subjectTagId = typeof subjectTagIdRaw === 'string' ? parseInt(subjectTagIdRaw, 10) : undefined;
-
-  if (!subjectTagId || Number.isNaN(subjectTagId)) {
-    throw new AppError(ERROR_MESSAGES.SUBJECT_TAG_REQUIRED, HTTP_STATUS.BAD_REQUEST);
-  }
-
-  const files = Array.isArray(fileInput) ? fileInput : [fileInput];
-
-  if (files.length === 0 || files.some((item) => !(item instanceof File))) {
-    throw new AppError(ERROR_MESSAGES.FILE_REQUIRED, HTTP_STATUS.BAD_REQUEST);
-  }
+  const files = ensureFiles(formData['file']);
 
   const uploadedFiles = await Promise.all(
     files.map((file) =>
@@ -57,12 +73,7 @@ pastExams.post('/', authMiddleware, async (c) => {
 });
 
 pastExams.delete('/:id', authMiddleware, adminMiddleware, async (c) => {
-  const pastExamId = parseInt(c.req.param('id'), 10);
-
-  if (Number.isNaN(pastExamId)) {
-    throw new AppError(ERROR_MESSAGES.FAILED_TO_DELETE_PAST_EXAM, HTTP_STATUS.BAD_REQUEST);
-  }
-
+  const pastExamId = parseIdParam(c.req.param('id'), ERROR_MESSAGES.FAILED_TO_DELETE_PAST_EXAM);
   await deletePastExamFileById(pastExamId);
 
   return c.json({ message: 'Past exam deleted successfully' });
