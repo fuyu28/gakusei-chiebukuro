@@ -214,6 +214,10 @@ export const uploadPastExam = async (formData: FormData): Promise<PastExamFile[]
   return [];
 };
 
+export const deletePastExam = async (pastExamId: number): Promise<void> => {
+  await apiFetch(`/past-exams/${pastExamId}`, { method: 'DELETE' });
+};
+
 // 管理者API
 export const fetchAdminUsers = async (): Promise<AdminUser[]> => {
   const data = await apiFetch<AdminUsersResponse>('/admin/users');
