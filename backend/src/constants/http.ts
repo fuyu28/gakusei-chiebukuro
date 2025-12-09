@@ -33,9 +33,11 @@ export const ERROR_MESSAGES = {
   FAILED_TO_DELETE_ANSWER: 'Failed to delete answer',
   SUBJECT_TAG_REQUIRED: 'Subject tag is required',
   SUBJECT_TAG_NOT_FOUND: 'Subject tag not found',
+  PAST_EXAM_NOT_FOUND: 'Past exam not found',
   FILE_REQUIRED: 'File is required',
   INVALID_FILE_TYPE: 'Only PDF, JPEG, and PNG files are allowed',
   FILE_TOO_LARGE: 'File size exceeds the allowed limit',
   FAILED_TO_UPLOAD_FILE: 'Failed to upload file',
   FAILED_TO_GET_PAST_EXAMS: 'Failed to get past exam files',
+  FAILED_TO_DELETE_PAST_EXAM: 'Failed to delete past exam',
 } as const;
