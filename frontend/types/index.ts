@@ -109,6 +109,7 @@ export interface PastExamListResponse {
 }
 
 export interface PastExamResponse {
-  file: PastExamFile;
+  file?: PastExamFile;
+  files?: PastExamFile[];
   message?: string;
 }
