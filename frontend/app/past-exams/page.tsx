@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState, FormEvent, ChangeEvent } from 'react';
-import { fetchPastExams, fetchSubjectTags, uploadPastExam } from '@/lib/api';
+import { fetchPastExams, fetchSubjectTags, uploadPastExam, deletePastExam } from '@/lib/api';
 import { formatDate, formatFileSize } from '@/lib/utils';
 import type { PastExamFile, SubjectTag } from '@/types';
 import { useAuth } from '@/lib/auth-context';
@@ -14,9 +14,11 @@ export default function PastExamsPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [uploading, setUploading] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [title, setTitle] = useState('');
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+  const isAdmin = Boolean(user?.is_admin);
 
   const fileTypeLabel = (mime: string) => {
     if (!mime) return 'FILE';
@@ -55,10 +57,10 @@ export default function PastExamsPage() {
   }, [loadFiles]);
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    setSelectedFile(file || null);
-    if (file && !title) {
-      setTitle(file.name);
+    const files = event.target.files ? Array.from(event.target.files) : [];
+    setSelectedFiles(files);
+    if (files.length === 1 && !title) {
+      setTitle(files[0].name);
     }
   };
 
@@ -72,29 +74,47 @@ export default function PastExamsPage() {
       return;
     }
 
-    if (!selectedFile) {
+    if (selectedFiles.length === 0) {
       setError('アップロードするファイルを選択してください');
       return;
     }
 
     const formData = new FormData();
     formData.append('subject_tag_id', selectedTag.toString());
-    formData.append('file', selectedFile);
-    if (title.trim()) {
+    selectedFiles.forEach((file) => formData.append('file', file));
+    if (selectedFiles.length === 1 && title.trim()) {
       formData.append('title', title.trim());
     }
 
     try {
       setUploading(true);
       await uploadPastExam(formData);
-      setSelectedFile(null);
+      setSelectedFiles([]);
       setTitle('');
-      setSuccess('過去問をアップロードしました');
+      setSuccess(`${selectedFiles.length}件の資料をアップロードしました`);
       await loadFiles();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'アップロードに失敗しました');
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleDelete = async (fileId: number) => {
+    if (!confirm('この資料を削除しますか？')) return;
+
+    setError('');
+    setSuccess('');
+
+    try {
+      setDeletingId(fileId);
+      await deletePastExam(fileId);
+      setSuccess('資料を削除しました');
+      await loadFiles();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '削除に失敗しました');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -143,16 +163,16 @@ export default function PastExamsPage() {
               <h2 className="text-xl font-semibold">過去問をアップロード</h2>
               <p className="text-sm text-gray-600">PDF・JPEG・PNG を10MB以内でアップロードできます。</p>
             </div>
-            {selectedFile && (
+            {selectedFiles.length > 0 && (
               <div className="text-sm text-gray-700">
-                {selectedFile.name}（{formatFileSize(selectedFile.size)}）
+                {selectedFiles.length} 件選択中
               </div>
             )}
           </div>
 
           <form onSubmit={handleUpload} className="mt-4 grid gap-4 md:grid-cols-2">
             <div className="space-y-3">
-              <label className="block text-sm font-medium">タイトル（任意）</label>
+              <label className="block text-sm font-medium">タイトル（任意・1件選択時のみ適用）</label>
               <input
                 type="text"
                 value={title}
@@ -178,14 +198,15 @@ export default function PastExamsPage() {
             </div>
 
             <div className="space-y-3">
-              <label className="block text-sm font-medium">ファイル</label>
+              <label className="block text-sm font-medium">ファイル（複数選択可）</label>
               <label className="flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-gray-300 px-4 py-3 hover:border-blue-400">
                 <div>
                   <p className="font-medium">ファイルを選択</p>
-                  <p className="text-sm text-gray-600">PDF, JPG, PNG / 最大10MB</p>
-                  {selectedFile && (
+                  <p className="text-sm text-gray-600">PDF, JPG, PNG / 最大10MB/件</p>
+                  {selectedFiles.length > 0 && (
                     <p className="mt-1 text-sm text-gray-700">
-                      選択中: {selectedFile.name}（{formatFileSize(selectedFile.size)}）
+                      {selectedFiles.slice(0, 3).map((file) => `${file.name}（${formatFileSize(file.size)}）`).join(' / ')}
+                      {selectedFiles.length > 3 ? ` ほか${selectedFiles.length - 3}件` : ''}
                     </p>
                   )}
                 </div>
@@ -193,12 +214,13 @@ export default function PastExamsPage() {
                 <input
                   type="file"
                   accept="application/pdf,image/png,image/jpeg"
+                  multiple
                   className="hidden"
                   onChange={handleFileChange}
                 />
               </label>
 
-              {!selectedFile && (
+              {selectedFiles.length === 0 && (
                 <p className="text-sm text-gray-500">まだファイルが選択されていません</p>
               )}
 
@@ -269,15 +291,29 @@ export default function PastExamsPage() {
                     </div>
                   </div>
 
-                  {file.file_type.startsWith('image/') && file.download_url && (
-                    // Next.js の最適化ルールを避け、署名付きURLのプレビューのみ軽量表示
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={file.download_url}
-                      alt={file.title}
-                      className="hidden h-28 w-24 rounded-lg object-cover md:block"
-                    />
-                  )}
+                  <div className="flex flex-col items-end gap-3">
+                    {isAdmin && (
+                      <button
+                        onClick={() => handleDelete(file.id)}
+                        disabled={deletingId === file.id}
+                        className={`rounded-lg bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100 ${
+                          deletingId === file.id ? 'cursor-not-allowed opacity-60' : ''
+                        }`}
+                      >
+                        {deletingId === file.id ? '削除中...' : '削除'}
+                      </button>
+                    )}
+
+                    {file.file_type.startsWith('image/') && file.download_url && (
+                      // Next.js の最適化ルールを避け、署名付きURLのプレビューのみ軽量表示
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={file.download_url}
+                        alt={file.title}
+                        className="hidden h-28 w-24 rounded-lg object-cover md:block"
+                      />
+                    )}
+                  </div>
                 </div>
               </div>
             ))}

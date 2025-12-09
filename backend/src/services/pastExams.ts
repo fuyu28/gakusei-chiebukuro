@@ -152,3 +152,35 @@ export async function uploadPastExamFile(params: {
   const downloadUrl = await createSignedUrl(filePath);
   return { ...(data as PastExamFileWithRelations), download_url: downloadUrl || undefined };
 }
+
+export async function deletePastExamFileById(id: number): Promise<void> {
+  const { data, error } = await supabaseAdmin
+    .from(TABLES.PAST_EXAMS)
+    .select('id, file_path')
+    .eq('id', id)
+    .single();
+
+  if (error || !data) {
+    throw new AppError(ERROR_MESSAGES.PAST_EXAM_NOT_FOUND, HTTP_STATUS.NOT_FOUND);
+  }
+
+  const { error: storageError } = await supabaseAdmin.storage
+    .from(PAST_EXAM_BUCKET)
+    .remove([data.file_path]);
+
+  if (storageError) {
+    throw new AppError(
+      storageError.message || ERROR_MESSAGES.FAILED_TO_DELETE_PAST_EXAM,
+      HTTP_STATUS.BAD_REQUEST
+    );
+  }
+
+  const { error: deleteError } = await supabaseAdmin
+    .from(TABLES.PAST_EXAMS)
+    .delete()
+    .eq('id', id);
+
+  if (deleteError) {
+    throw new AppError(deleteError.message, HTTP_STATUS.BAD_REQUEST);
+  }
+}

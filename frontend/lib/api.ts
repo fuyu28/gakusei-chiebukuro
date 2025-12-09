@@ -203,13 +203,19 @@ export const fetchPastExams = async (subjectTagId?: number): Promise<PastExamFil
   return data.files;
 };
 
-export const uploadPastExam = async (formData: FormData): Promise<PastExamFile> => {
+export const uploadPastExam = async (formData: FormData): Promise<PastExamFile[]> => {
   const data = await apiFetch<PastExamResponse>('/past-exams', {
     method: 'POST',
     body: formData,
   });
 
-  return data.file;
+  if (data.files && data.files.length > 0) return data.files;
+  if (data.file) return [data.file];
+  return [];
+};
+
+export const deletePastExam = async (pastExamId: number): Promise<void> => {
+  await apiFetch(`/past-exams/${pastExamId}`, { method: 'DELETE' });
 };
 
 // 管理者API
