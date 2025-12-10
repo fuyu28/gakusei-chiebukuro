@@ -1,0 +1,9 @@
+name = "gakusei-chiebukuro-api"
+main = "src/index.ts"
+compatibility_date = "2024-06-20"
+node_compat = true
+
+[vars]
+SUPABASE_PAST_EXAM_BUCKET = "past-exams"
+ALLOWED_EMAIL_DOMAIN = "ccmailg.meijo-u.ac.jp"
+REQUIRE_EMAIL_VERIFICATION = "true"
