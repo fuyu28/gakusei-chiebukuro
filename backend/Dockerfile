@@ -1,38 +1,32 @@
-# Backend Dockerfile for Gakusei Chiebukuro
-
 # Build stage
-FROM node:20-alpine AS builder
+FROM oven/bun:1-alpine AS builder
 
 WORKDIR /app
 
 # Copy package files
-COPY package*.json ./
+COPY package*.json bun.lock ./
 
-# Install dependencies
-RUN npm ci
+# Install deps (Bun が自動で高速解決)
+RUN bun install --frozen-lockfile
 
-# Copy source code
+# Copy source
 COPY . .
 
 # Build TypeScript
-RUN npm run build
+RUN bun run build
 
 # Production stage
-FROM node:20-alpine
+FROM oven/bun:1-alpine
 
 WORKDIR /app
 
 # Copy package files
-COPY package*.json ./
+COPY package*.json bun.lock ./
+RUN bun install --production --frozen-lockfile
 
-# Install production dependencies only
-RUN npm ci --only=production
-
-# Copy built files from builder
+# Copy built output
 COPY --from=builder /app/dist ./dist
 
-# Expose port
 EXPOSE 3000
 
-# Start the application
-CMD ["npm", "start"]
+CMD ["bun", "run", "start"]
