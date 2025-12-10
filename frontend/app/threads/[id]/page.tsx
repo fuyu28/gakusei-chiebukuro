@@ -28,6 +28,7 @@ export default function ThreadDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [likeLoadingIds, setLikeLoadingIds] = useState<Set<number>>(new Set());
   const { user: currentUser, isAuthenticated } = useAuth();
 
   const loadData = useCallback(async () => {
@@ -105,18 +106,32 @@ export default function ThreadDetailPage() {
       return;
     }
 
-    try {
-      if (answer.is_liked_by_me) {
-        await unlikeAnswer(answer.id);
-      } else {
-        await likeAnswer(answer.id);
-      }
+    setLikeLoadingIds((prev) => {
+      const next = new Set(prev);
+      next.add(answer.id);
+      return next;
+    });
 
-      // Optimistic update or reload
-      await loadData();
+    try {
+      const result = answer.is_liked_by_me
+        ? await unlikeAnswer(answer.id)
+        : await likeAnswer(answer.id);
+
+      setAnswers((prev) =>
+        prev.map((a) =>
+          a.id === answer.id
+            ? { ...a, likes_count: result.likes_count, is_liked_by_me: result.is_liked_by_me }
+            : a
+        )
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : 'いいねの更新に失敗しました');
     }
+    setLikeLoadingIds((prev) => {
+      const next = new Set(prev);
+      next.delete(answer.id);
+      return next;
+    });
   };
 
   const handleResolveThread = async () => {
@@ -251,11 +266,11 @@ export default function ThreadDetailPage() {
                       {!isAuthor && (
                         <button
                           onClick={() => handleToggleLike(answer)}
-                          disabled={!isAuthenticated}
+                          disabled={!isAuthenticated || likeLoadingIds.has(answer.id)}
                           className={`flex items-center gap-1 px-3 py-1 rounded-full border transition ${answer.is_liked_by_me
                             ? 'bg-pink-50 border-pink-200 text-pink-600'
                             : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
-                            } ${!isAuthenticated ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            } ${!isAuthenticated || likeLoadingIds.has(answer.id) ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
                           <svg
                             xmlns="http://www.w3.org/2000/svg"

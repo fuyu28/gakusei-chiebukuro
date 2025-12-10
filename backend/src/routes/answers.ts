@@ -108,20 +108,22 @@ answers.delete('/:id', authMiddleware, asyncHandler(async (c) => {
 answers.post('/:id/like', authMiddleware, asyncHandler(async (c) => {
   const user = c.get('user') as AuthUser;
   const answer_id = parseInt(c.req.param('id'));
+  const token = c.get('auth_token') as string;
 
-  await likeAnswer(answer_id, user.id);
+  const likeState = await likeAnswer(answer_id, user.id, token);
 
-  return c.json({ message: 'Liked successfully' });
+  return c.json({ message: 'Liked successfully', ...likeState });
 }));
 
 // いいね解除
 answers.delete('/:id/like', authMiddleware, asyncHandler(async (c) => {
   const user = c.get('user') as AuthUser;
   const answer_id = parseInt(c.req.param('id'));
+  const token = c.get('auth_token') as string;
 
-  await unlikeAnswer(answer_id, user.id);
+  const likeState = await unlikeAnswer(answer_id, user.id, token);
 
-  return c.json({ message: 'Unliked successfully' });
+  return c.json({ message: 'Unliked successfully', ...likeState });
 }));
 
 export default answers;

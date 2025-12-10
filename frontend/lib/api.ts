@@ -185,12 +185,14 @@ export const deleteAnswer = async (answerId: number): Promise<void> => {
   await apiFetch(`/answers/${answerId}`, { method: 'DELETE' });
 };
 
-export const likeAnswer = async (answerId: number): Promise<void> => {
-  await apiFetch(`/answers/${answerId}/like`, { method: 'POST' });
+export const likeAnswer = async (answerId: number): Promise<{ likes_count: number; is_liked_by_me: boolean }> => {
+  const data = await apiFetch<{ likes_count: number; is_liked_by_me: boolean }>(`/answers/${answerId}/like`, { method: 'POST' });
+  return data;
 };
 
-export const unlikeAnswer = async (answerId: number): Promise<void> => {
-  await apiFetch(`/answers/${answerId}/like`, { method: 'DELETE' });
+export const unlikeAnswer = async (answerId: number): Promise<{ likes_count: number; is_liked_by_me: boolean }> => {
+  const data = await apiFetch<{ likes_count: number; is_liked_by_me: boolean }>(`/answers/${answerId}/like`, { method: 'DELETE' });
+  return data;
 };
 
 // 科目タグAPI

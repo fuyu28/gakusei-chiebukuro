@@ -1,16 +1,56 @@
-import { supabase, supabaseAdmin } from '../lib/supabase';
+import { supabase, supabaseAdmin, createClientWithToken } from '../lib/supabase';
 import { TABLES } from '../constants/database';
 import { AppError } from '../utils/errors';
 import { HTTP_STATUS, ERROR_MESSAGES } from '../constants/http';
 import { Answer, AnswerWithUser } from '../types';
+
+type LikesState = {
+  likeCountMap: Map<number, number>;
+  likedAnswerIds: Set<number>;
+};
+
+async function getLikesState(answerIds: number[], currentUserId?: string): Promise<LikesState> {
+  const likeCountMap = new Map<number, number>();
+  const likedAnswerIds = new Set<number>();
+
+  if (answerIds.length === 0) {
+    return { likeCountMap, likedAnswerIds };
+  }
+
+  // 全体のいいね件数を集計
+  const { data: allLikes, error: allLikesError } = await supabase
+    .from(TABLES.ANSWER_LIKES)
+    .select('answer_id')
+    .in('answer_id', answerIds);
+
+  if (allLikesError) {
+    throw new AppError(allLikesError.message, HTTP_STATUS.BAD_REQUEST);
+  }
+
+  allLikes?.forEach((l: any) => {
+    likeCountMap.set(l.answer_id, (likeCountMap.get(l.answer_id) || 0) + 1);
+  });
+
+  // ログイン済みユーザーのいいね済み一覧
+  if (currentUserId) {
+    const { data: likes } = await supabase
+      .from(TABLES.ANSWER_LIKES)
+      .select('answer_id')
+      .eq('user_id', currentUserId)
+      .in('answer_id', answerIds);
+
+    likes?.forEach((l: any) => likedAnswerIds.add(l.answer_id));
+  }
+
+  return { likeCountMap, likedAnswerIds };
+}
 
 export async function listAnswersByThread(threadId: number, currentUserId?: string): Promise<AnswerWithUser[]> {
   const { data, error } = await supabase
     .from(TABLES.ANSWERS)
     .select(`
       *,
-      user:profiles(id, email, display_name),
-      answer_likes(count)
+      user:profiles(id, email, display_name)
     `)
     .eq('thread_id', threadId)
     .order('is_best_answer', { ascending: false })
@@ -20,25 +60,13 @@ export async function listAnswersByThread(threadId: number, currentUserId?: stri
     throw new AppError(error.message, HTTP_STATUS.BAD_REQUEST);
   }
 
-  const answers = data as any[];
-
-  // If user is logged in, check which answers they liked
-  let likedAnswerIds = new Set<number>();
-  if (currentUserId) {
-    const { data: likes } = await supabase
-      .from(TABLES.ANSWER_LIKES)
-      .select('answer_id')
-      .eq('user_id', currentUserId)
-      .in('answer_id', answers.map(a => a.id));
-
-    if (likes) {
-      likes.forEach((l: any) => likedAnswerIds.add(l.answer_id));
-    }
-  }
+  const answers = (data as any[]) || [];
+  const answerIds = answers.map(a => a.id);
+  const { likeCountMap, likedAnswerIds } = await getLikesState(answerIds, currentUserId);
 
   return answers.map(a => ({
     ...a,
-    likes_count: a.answer_likes?.[0]?.count || 0,
+    likes_count: likeCountMap.get(a.id) || 0,
     is_liked_by_me: likedAnswerIds.has(a.id)
   }));
 }
@@ -113,7 +141,7 @@ export async function deleteAnswerById(answerId: number): Promise<void> {
   }
 }
 
-export async function likeAnswer(answerId: number, userId: string): Promise<void> {
+export async function likeAnswer(answerId: number, userId: string, token: string): Promise<{ likes_count: number; is_liked_by_me: boolean }> {
   // 1. Get answer to find thread_id and answer author
   const answer = await getAnswerById(answerId);
 
@@ -134,7 +162,9 @@ export async function likeAnswer(answerId: number, userId: string): Promise<void
   }
 
   // 4. Insert like
-  const { error: likeError } = await supabase
+  const supabaseWithToken = createClientWithToken(token);
+
+  const { error: likeError } = await supabaseWithToken
     .from(TABLES.ANSWER_LIKES)
     .insert({ answer_id: answerId, user_id: userId });
 
@@ -149,12 +179,21 @@ export async function likeAnswer(answerId: number, userId: string): Promise<void
   // Note: This is not atomic without a transaction/RPC, but sufficient for now.
   // Ideally use an RPC like 'increment_likes'
   await incrementProfileLikes(answer.user_id);
+
+  // 6. 最新のいいね状態を返す（呼び出し側がレスポンスに含めやすいように）
+  const { likeCountMap, likedAnswerIds } = await getLikesState([answerId], userId);
+  return {
+    likes_count: likeCountMap.get(answerId) || 0,
+    is_liked_by_me: likedAnswerIds.has(answerId),
+  };
 }
 
-export async function unlikeAnswer(answerId: number, userId: string): Promise<void> {
+export async function unlikeAnswer(answerId: number, userId: string, token: string): Promise<{ likes_count: number; is_liked_by_me: boolean }> {
   const answer = await getAnswerById(answerId);
 
-  const { error } = await supabase
+  const supabaseWithToken = createClientWithToken(token);
+
+  const { error } = await supabaseWithToken
     .from(TABLES.ANSWER_LIKES)
     .delete()
     .eq('answer_id', answerId)
@@ -166,6 +205,12 @@ export async function unlikeAnswer(answerId: number, userId: string): Promise<vo
 
   // Decrement total_likes
   await decrementProfileLikes(answer.user_id);
+
+  const { likeCountMap, likedAnswerIds } = await getLikesState([answerId], userId);
+  return {
+    likes_count: likeCountMap.get(answerId) || 0,
+    is_liked_by_me: likedAnswerIds.has(answerId),
+  };
 }
 
 async function incrementProfileLikes(userId: string) {

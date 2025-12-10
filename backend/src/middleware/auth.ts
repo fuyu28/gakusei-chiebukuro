@@ -13,6 +13,7 @@ export async function authMiddleware(c: Context, next: Next) {
   }
 
   const token = authHeader.substring(7);
+  c.set('auth_token', token);
 
   try {
     const { data: { user }, error } = await supabase.auth.getUser(token);
@@ -54,6 +55,7 @@ export async function optionalAuthMiddleware(c: Context, next: Next) {
   }
 
   const token = authHeader.substring(7);
+  c.set('auth_token', token);
 
   try {
     const { data: { user }, error } = await supabase.auth.getUser(token);
