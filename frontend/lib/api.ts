@@ -185,6 +185,14 @@ export const deleteAnswer = async (answerId: number): Promise<void> => {
   await apiFetch(`/answers/${answerId}`, { method: 'DELETE' });
 };
 
+export const likeAnswer = async (answerId: number): Promise<void> => {
+  await apiFetch(`/answers/${answerId}/like`, { method: 'POST' });
+};
+
+export const unlikeAnswer = async (answerId: number): Promise<void> => {
+  await apiFetch(`/answers/${answerId}/like`, { method: 'DELETE' });
+};
+
 // 科目タグAPI
 export const fetchSubjectTags = async () => {
   const data = await apiFetch<TagsResponse>('/subject-tags');

@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
-import { authMiddleware } from '../middleware/auth';
+import { authMiddleware, optionalAuthMiddleware } from '../middleware/auth';
 import { asyncHandler, AppError } from '../utils/errors';
 import { verifyOwnership } from '../utils/authorization';
 import { HTTP_STATUS, ERROR_MESSAGES } from '../constants/http';
@@ -15,6 +15,8 @@ import {
   clearBestAnswer,
   setBestAnswer,
   deleteAnswerById,
+  likeAnswer,
+  unlikeAnswer,
 } from '../services/answers';
 
 const answers = new Hono();
@@ -26,10 +28,11 @@ const createAnswerSchema = z.object({
 });
 
 // スレッドの回答一覧取得
-answers.get('/threads/:thread_id', asyncHandler(async (c) => {
+answers.get('/threads/:thread_id', optionalAuthMiddleware, asyncHandler(async (c) => {
   const thread_id = parseInt(c.req.param('thread_id'));
+  const user = c.get('user') as AuthUser | undefined;
 
-  const answersList = await listAnswersByThread(thread_id);
+  const answersList = await listAnswersByThread(thread_id, user?.id);
   return c.json({ answers: answersList });
 }));
 
@@ -99,6 +102,26 @@ answers.delete('/:id', authMiddleware, asyncHandler(async (c) => {
   await deleteAnswerById(answer_id);
 
   return c.json({ message: 'Answer deleted successfully' });
+}));
+
+// いいね
+answers.post('/:id/like', authMiddleware, asyncHandler(async (c) => {
+  const user = c.get('user') as AuthUser;
+  const answer_id = parseInt(c.req.param('id'));
+
+  await likeAnswer(answer_id, user.id);
+
+  return c.json({ message: 'Liked successfully' });
+}));
+
+// いいね解除
+answers.delete('/:id/like', authMiddleware, asyncHandler(async (c) => {
+  const user = c.get('user') as AuthUser;
+  const answer_id = parseInt(c.req.param('id'));
+
+  await unlikeAnswer(answer_id, user.id);
+
+  return c.json({ message: 'Unliked successfully' });
 }));
 
 export default answers;

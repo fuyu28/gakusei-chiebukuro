@@ -10,6 +10,8 @@ import {
   selectBestAnswer,
   deleteAnswer,
   updateThread,
+  likeAnswer,
+  unlikeAnswer,
 } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
 import type { Thread, Answer } from '@/types';
@@ -97,6 +99,26 @@ export default function ThreadDetailPage() {
     }
   };
 
+  const handleToggleLike = async (answer: Answer) => {
+    if (!isAuthenticated) {
+      setError('いいねするにはログインが必要です');
+      return;
+    }
+
+    try {
+      if (answer.is_liked_by_me) {
+        await unlikeAnswer(answer.id);
+      } else {
+        await likeAnswer(answer.id);
+      }
+
+      // Optimistic update or reload
+      await loadData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'いいねの更新に失敗しました');
+    }
+  };
+
   const handleResolveThread = async () => {
     if (!confirm('このスレッドを解決済みにしますか？')) {
       return;
@@ -155,11 +177,10 @@ export default function ThreadDetailPage() {
               <div className="flex items-center gap-3 mb-4 flex-wrap">
                 <h1 className="text-3xl font-bold">{thread.title}</h1>
                 <span
-                  className={`px-3 py-1 text-sm font-medium rounded-full ${
-                    thread.status === 'resolved'
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-blue-100 text-blue-800'
-                  }`}
+                  className={`px-3 py-1 text-sm font-medium rounded-full ${thread.status === 'resolved'
+                    ? 'bg-green-100 text-green-800'
+                    : 'bg-blue-100 text-blue-800'
+                    }`}
                 >
                   {thread.status === 'resolved' ? '解決済み' : '未解決'}
                 </span>
@@ -206,9 +227,8 @@ export default function ThreadDetailPage() {
               {answers.map((answer) => (
                 <div
                   key={answer.id}
-                  className={`bg-white rounded-lg shadow-md p-6 ${
-                    answer.is_best_answer ? 'border-2 border-green-500' : ''
-                  }`}
+                  className={`bg-white rounded-lg shadow-md p-6 ${answer.is_best_answer ? 'border-2 border-green-500' : ''
+                    }`}
                 >
                   {answer.is_best_answer && (
                     <div className="inline-block px-3 py-1 bg-green-600 text-white text-sm font-medium rounded-full mb-3">
@@ -226,7 +246,35 @@ export default function ThreadDetailPage() {
                       <span>{formatDate(answer.created_at)}</span>
                     </div>
 
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 items-center">
+                      {/* Like Button */}
+                      {!isAuthor && (
+                        <button
+                          onClick={() => handleToggleLike(answer)}
+                          disabled={!isAuthenticated}
+                          className={`flex items-center gap-1 px-3 py-1 rounded-full border transition ${answer.is_liked_by_me
+                            ? 'bg-pink-50 border-pink-200 text-pink-600'
+                            : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
+                            } ${!isAuthenticated ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill={answer.is_liked_by_me ? 'currentColor' : 'none'}
+                            viewBox="0 0 24 24"
+                            strokeWidth={1.5}
+                            stroke="currentColor"
+                            className="w-4 h-4"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
+                            />
+                          </svg>
+                          <span className="text-sm font-medium">{answer.likes_count || 0}</span>
+                        </button>
+                      )}
+
                       {isAuthor &&
                         !answer.is_best_answer &&
                         thread.status !== 'resolved' && (

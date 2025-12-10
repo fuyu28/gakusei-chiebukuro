@@ -3,7 +3,7 @@ import { TABLES } from '../constants/database';
 import { AppError } from '../utils/errors';
 import { HTTP_STATUS } from '../constants/http';
 
-const PROFILE_FIELDS = 'id, email, display_name, created_at, is_banned';
+const PROFILE_FIELDS = 'id, email, display_name, created_at, is_banned, total_likes';
 
 export type UserProfile = {
   id: string;
@@ -11,6 +11,7 @@ export type UserProfile = {
   display_name?: string | null;
   created_at?: string;
   is_banned?: boolean | null;
+  total_likes?: number;
 };
 
 export async function findProfileById(id: string): Promise<UserProfile | null> {
