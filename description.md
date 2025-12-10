@@ -32,7 +32,7 @@
 ### システムアーキテクチャ
 ```mermaid
 flowchart LR
-  U[Browser\n学生/管理者] -->|HTTP(S)| FE[Next.js App Router\nReact 19 / Tailwind]
+  U[Browser\n学生/管理者] -->|HTTPS| FE[Next.js App Router\nReact 19 / Tailwind]
   FE -->|REST /api/*| BE[Hono API\nNode.js + Supabase SDK]
   BE -->|JWT検証| AUTH[Supabase Auth]
   BE -->|SQL| DB[(Supabase Postgres\nthreads / answers / tags / profiles / past_exam_files)]
@@ -47,8 +47,8 @@ flowchart TB
     U[Browser]
   end
   subgraph Container
-    FE[Next.js (8080)]
-    BE[Hono API (3000)]
+    FE[Next.js 8080]
+    BE[Hono API 3000]
   end
   subgraph Supabase[SaaS]
     AUTH[Auth]
