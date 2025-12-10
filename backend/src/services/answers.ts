@@ -75,8 +75,11 @@ export async function createAnswerRecord(params: {
   thread_id: number;
   content: string;
   user_id: string;
+  token: string;
 }): Promise<Answer> {
-  const { data, error } = await supabaseAdmin
+  const supabaseWithToken = createClientWithToken(params.token);
+
+  const { data, error } = await supabaseWithToken
     .from(TABLES.ANSWERS)
     .insert({
       thread_id: params.thread_id,
@@ -133,8 +136,10 @@ export async function setBestAnswer(answerId: number): Promise<Answer> {
   return data as Answer;
 }
 
-export async function deleteAnswerById(answerId: number): Promise<void> {
-  const { error } = await supabaseAdmin.from(TABLES.ANSWERS).delete().eq('id', answerId);
+export async function deleteAnswerById(answerId: number, token: string): Promise<void> {
+  const supabaseWithToken = createClientWithToken(token);
+
+  const { error } = await supabaseWithToken.from(TABLES.ANSWERS).delete().eq('id', answerId);
 
   if (error) {
     throw new AppError(error.message, HTTP_STATUS.BAD_REQUEST);

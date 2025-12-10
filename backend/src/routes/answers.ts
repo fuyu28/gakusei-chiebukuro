@@ -39,6 +39,7 @@ answers.get('/threads/:thread_id', optionalAuthMiddleware, asyncHandler(async (c
 // 回答投稿
 answers.post('/', authMiddleware, zValidator('json', createAnswerSchema), asyncHandler(async (c: any) => {
   const user = c.get('user') as AuthUser;
+  const token = c.get('auth_token') as string;
   const { thread_id, content } = c.req.valid('json');
 
   // スレッドの存在確認と締切チェック
@@ -55,7 +56,7 @@ answers.post('/', authMiddleware, zValidator('json', createAnswerSchema), asyncH
   }
 
   // 回答を投稿
-  const answer = await createAnswerRecord({ thread_id, content, user_id: user.id });
+  const answer = await createAnswerRecord({ thread_id, content, user_id: user.id, token });
 
   return c.json({ message: 'Answer created successfully', answer }, HTTP_STATUS.CREATED as any);
 }));
@@ -64,6 +65,7 @@ answers.post('/', authMiddleware, zValidator('json', createAnswerSchema), asyncH
 answers.patch('/:id/best', authMiddleware, asyncHandler(async (c) => {
   const user = c.get('user') as AuthUser;
   const answer_id = parseInt(c.req.param('id'));
+  const token = c.get('auth_token') as string;
 
   // 回答の取得
   const answer = await getAnswerById(answer_id);
@@ -82,7 +84,7 @@ answers.patch('/:id/best', authMiddleware, asyncHandler(async (c) => {
   const updatedAnswer = await setBestAnswer(answer_id);
 
   // スレッドを解決済みに更新
-  await updateThreadStatus(answer.thread_id, 'resolved');
+  await updateThreadStatus(answer.thread_id, 'resolved', token);
 
   return c.json({
     message: 'Best answer selected successfully',
@@ -94,12 +96,13 @@ answers.patch('/:id/best', authMiddleware, asyncHandler(async (c) => {
 answers.delete('/:id', authMiddleware, asyncHandler(async (c) => {
   const user = c.get('user') as AuthUser;
   const answer_id = parseInt(c.req.param('id'));
+  const token = c.get('auth_token') as string;
 
   // 回答の所有者確認
   await verifyOwnership(TABLES.ANSWERS, answer_id, user.id);
 
   // 削除
-  await deleteAnswerById(answer_id);
+  await deleteAnswerById(answer_id, token);
 
   return c.json({ message: 'Answer deleted successfully' });
 }));
