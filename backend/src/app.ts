@@ -29,14 +29,26 @@ const defaultOrigins = [
   'http://127.0.0.1:8080',
   'http://localhost',
   'http://localhost:80',
+  'http://localhost:8788', // wrangler pages dev
 ];
+
 const envOrigins = (getEnvVar('CORS_ALLOW_ORIGINS') || '')
   .split(',')
   .map((o) => o.trim())
-  .filter((o) => o.length > 0);
+  .filter(Boolean);
+
+const allowedDomains = [...defaultOrigins, ...envOrigins];
 
 app.use('/*', cors({
-  origin: [...defaultOrigins, ...envOrigins],
+  origin: (origin) => {
+    if (!origin) return false;
+    if (allowedDomains.includes(origin)) return origin;
+    if (origin.endsWith('.pages.dev')) return origin;
+    if (origin.endsWith('.workers.dev')) return origin;
+    return false;
+  },
+  allowHeaders: ['Content-Type', 'Authorization'],
+  allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   credentials: true,
 }));
 
