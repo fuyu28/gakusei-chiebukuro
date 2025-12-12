@@ -11,6 +11,7 @@ export type UserProfile = {
   display_name?: string | null;
   created_at?: string;
   is_banned?: boolean | null;
+  is_admin?: boolean | null;
   total_likes?: number;
 };
 

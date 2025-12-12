@@ -39,18 +39,21 @@ const envOrigins = (getEnvVar('CORS_ALLOW_ORIGINS') || '')
 
 const allowedDomains = [...defaultOrigins, ...envOrigins];
 
-app.use('/*', cors({
-  origin: (origin) => {
-    if (!origin) return false;
-    if (allowedDomains.includes(origin)) return origin;
-    if (origin.endsWith('.pages.dev')) return origin;
-    if (origin.endsWith('.workers.dev')) return origin;
-    return false;
-  },
-  allowHeaders: ['Content-Type', 'Authorization'],
-  allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  credentials: true,
-}));
+app.use(
+  '/*',
+  cors({
+    origin: (origin, _c) => {
+      if (!origin) return null;
+      if (allowedDomains.includes(origin)) return origin;
+      if (origin.endsWith('.pages.dev')) return origin;
+      if (origin.endsWith('.workers.dev')) return origin;
+      return null;
+    },
+    allowHeaders: ['Content-Type', 'Authorization'],
+    allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    credentials: true,
+  })
+);
 
 // ヘルスチェック
 app.get('/', (c) => {
