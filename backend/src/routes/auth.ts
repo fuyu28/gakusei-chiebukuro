@@ -124,6 +124,7 @@ auth.get('/me', authMiddleware, asyncHandler(async (c) => {
       created_at: profile?.created_at,
       is_banned: profile?.is_banned ?? false,
       is_admin: user.is_admin ?? false,
+      total_likes: profile?.total_likes || 0,
     },
   });
 }));

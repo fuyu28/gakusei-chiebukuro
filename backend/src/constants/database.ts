@@ -7,4 +7,5 @@ export const TABLES = {
   PROFILES: 'profiles',
   SUBJECT_TAGS: 'subject_tags',
   PAST_EXAMS: 'past_exam_files',
+  ANSWER_LIKES: 'answer_likes',
 } as const;

@@ -5,6 +5,7 @@ export interface User {
   created_at: string;
   is_banned?: boolean;
   is_admin?: boolean;
+  total_likes?: number;
 }
 
 export interface AuthUser {
@@ -12,6 +13,7 @@ export interface AuthUser {
   email: string;
   is_admin?: boolean;
   is_banned?: boolean;
+  total_likes?: number;
 }
 
 export interface SubjectTag {
@@ -69,6 +71,8 @@ export interface AnswerWithUser extends Answer {
     email: string;
     display_name?: string;
   };
+  likes_count?: number;
+  is_liked_by_me?: boolean;
 }
 
 export interface PastExamFileWithRelations extends PastExamFile {

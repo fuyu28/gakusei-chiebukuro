@@ -20,3 +20,14 @@ export const ALLOWED_EMAIL_DOMAIN = process.env.ALLOWED_EMAIL_DOMAIN || 'ccmailg
 export function isAllowedEmailDomain(email: string): boolean {
   return email.endsWith(`@${ALLOWED_EMAIL_DOMAIN}`);
 }
+
+// ユーザーのJWTを付けてRLSを通すためのクライアント生成
+export function createClientWithToken(token: string) {
+  return createClient(supabaseUrl, supabaseAnonKey, {
+    global: {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  });
+}

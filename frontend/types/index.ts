@@ -6,6 +6,7 @@ export interface User {
   created_at: string;
   is_admin?: boolean;
   is_banned?: boolean;
+  total_likes?: number;
 }
 
 // スレッド型
@@ -34,6 +35,8 @@ export interface Answer {
   created_at: string;
   updated_at: string;
   user?: User;
+  likes_count?: number;
+  is_liked_by_me?: boolean;
 }
 
 export interface PastExamFile {
