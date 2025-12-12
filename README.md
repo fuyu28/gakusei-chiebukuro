@@ -67,6 +67,12 @@ gakusei-chiebukuro/
     └── next.config.ts
 ```
 
+## CI / CD
+
+- **CI (GitHub Actions)**: `.github/workflows/ci.yml` でPR時に実行。フロントエンドは Bun で lint/build、バックエンドは Bun で type-check/build を行い、Next.js キャッシュを活用して高速化。
+- **CD (Cloudflare Pages - フロントエンド)**: `frontend` の `wrangler.toml` を利用して Pages へデプロイ。`npm run cf:build` で `.vercel/output/static` を生成し、`npm run cf:deploy` で Pages へ反映。ビルド時に `NEXT_PUBLIC_API_BASE_URL` などの環境変数を Pages の Build 環境に設定する。
+- **CD (Cloudflare Workers - バックエンド)**: `backend/wrangler.toml` を利用し `wrangler deploy` で Workers にデプロイ。Supabase キーなどのシークレット/環境変数は Cloudflare ダッシュボードまたは `wrangler secret put` / `[vars]` で設定する。
+
 ## セットアップ
 
 ### 前提条件
@@ -89,15 +95,15 @@ gakusei-chiebukuro/
 ```bash
 cd backend
 
-# 依存関係のインストール
-npm install
+# 依存関係のインストール（CIと同じくBunを推奨）
+bun install   # または npm install
 
 # 環境変数の設定
 cp .env.example .env
 # .env ファイルを編集してSupabase認証情報を設定
 
 # 開発サーバーの起動
-npm run dev
+bun run dev   # または npm run dev
 ```
 
 **`.env` の設定例:**
@@ -121,11 +127,11 @@ ADMIN_EMAILS=admin1@ccmailg.meijo-u.ac.jp,admin2@ccmailg.meijo-u.ac.jp
 ```bash
 cd frontend
 
-# 依存関係のインストール
-npm install
+# 依存関係のインストール（CIと同じくBunを推奨）
+bun install   # または npm install
 
 # 開発サーバーの起動 (http://localhost:8080)
-npm run dev
+bun run dev   # または npm run dev
 ```
 
 必要に応じて `.env.local` などで `NEXT_PUBLIC_API_BASE_URL` を上書きできます（デフォルトは `http://localhost:3000/api`）。
@@ -213,19 +219,27 @@ docker-compose up -d --build
 
 ## デプロイ
 
-### バックエンド（Cloudflare Workers推奨）
+### バックエンド（Cloudflare Workers）
 
 ```bash
 cd backend
-npm run build
-# Cloudflare Workersにデプロイ
+# ビルド
+bun run build   # または npm run build
+# デプロイ
+wrangler deploy
 ```
 
-### フロントエンド（Netlify / Vercel / GitHub Pages等）
+`wrangler.toml` で Worker を管理。Supabaseキーなどの環境変数/シークレットは Cloudflare ダッシュボードまたは `wrangler secret put` / `[vars]` で設定してください。
+
+### フロントエンド（Cloudflare Pages）
 
 ```bash
-# frontend/ ディレクトリをそのままデプロイ
+cd frontend
+# Pages向けビルドとデプロイ（scripts に cf:build / cf:deploy を用意）
+bun run cf:deploy   # または npm run cf:deploy
 ```
+
+`frontend/wrangler.toml` を使って Pages にデプロイします。ビルド時に `NEXT_PUBLIC_API_BASE_URL` などの Build 環境変数を Cloudflare Pages 側に設定してください（設定が無いとクライアント側にlocalhostが埋め込まれます）。
 
 ## ライセンス
 

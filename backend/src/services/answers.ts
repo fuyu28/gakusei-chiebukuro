@@ -1,4 +1,4 @@
-import { supabase, supabaseAdmin, createClientWithToken } from '../lib/supabase';
+import { getSupabase, getSupabaseAdmin, createClientWithToken } from '../lib/supabase';
 import { TABLES } from '../constants/database';
 import { AppError } from '../utils/errors';
 import { HTTP_STATUS, ERROR_MESSAGES } from '../constants/http';
@@ -10,6 +10,7 @@ type LikesState = {
 };
 
 async function getLikesState(answerIds: number[], currentUserId?: string): Promise<LikesState> {
+  const supabase = getSupabase();
   const likeCountMap = new Map<number, number>();
   const likedAnswerIds = new Set<number>();
 
@@ -46,6 +47,7 @@ async function getLikesState(answerIds: number[], currentUserId?: string): Promi
 }
 
 export async function listAnswersByThread(threadId: number, currentUserId?: string): Promise<AnswerWithUser[]> {
+  const supabase = getSupabase();
   const { data, error } = await supabase
     .from(TABLES.ANSWERS)
     .select(`
@@ -97,6 +99,7 @@ export async function createAnswerRecord(params: {
 }
 
 export async function getAnswerById(answerId: number): Promise<Answer> {
+  const supabase = getSupabase();
   const { data, error } = await supabase
     .from(TABLES.ANSWERS)
     .select('id, thread_id, user_id, content, is_best_answer, created_at, updated_at')
@@ -111,6 +114,7 @@ export async function getAnswerById(answerId: number): Promise<Answer> {
 }
 
 export async function clearBestAnswer(threadId: number): Promise<void> {
+  const supabaseAdmin = getSupabaseAdmin();
   const { error } = await supabaseAdmin
     .from(TABLES.ANSWERS)
     .update({ is_best_answer: false })
@@ -122,6 +126,7 @@ export async function clearBestAnswer(threadId: number): Promise<void> {
 }
 
 export async function setBestAnswer(answerId: number): Promise<Answer> {
+  const supabaseAdmin = getSupabaseAdmin();
   const { data, error } = await supabaseAdmin
     .from(TABLES.ANSWERS)
     .update({ is_best_answer: true })
@@ -151,6 +156,7 @@ export async function likeAnswer(answerId: number, userId: string, token: string
   const answer = await getAnswerById(answerId);
 
   // 2. Get thread to find question owner
+  const supabase = getSupabase();
   const { data: thread, error: threadError } = await supabase
     .from(TABLES.THREADS)
     .select('user_id')
@@ -219,6 +225,7 @@ export async function unlikeAnswer(answerId: number, userId: string, token: stri
 }
 
 async function incrementProfileLikes(userId: string) {
+  const supabaseAdmin = getSupabaseAdmin();
   // Fetch current likes
   const { data: profile } = await supabaseAdmin
     .from(TABLES.PROFILES)
@@ -235,6 +242,7 @@ async function incrementProfileLikes(userId: string) {
 }
 
 async function decrementProfileLikes(userId: string) {
+  const supabaseAdmin = getSupabaseAdmin();
   const { data: profile } = await supabaseAdmin
     .from(TABLES.PROFILES)
     .select('total_likes')

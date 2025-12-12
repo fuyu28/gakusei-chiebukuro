@@ -1,28 +1,69 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.SUPABASE_URL || '';
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || '';
-const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+type SupabaseEnv = Record<string, string | undefined>;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables');
+let cachedEnv: SupabaseEnv = {};
+let supabaseUrl = '';
+let supabaseAnonKey = '';
+let supabaseServiceRoleKey = '';
+let supabase: SupabaseClient | null = null;
+let supabaseAdmin: SupabaseClient | null = null;
+let allowedEmailDomain = 'ccmailg.meijo-u.ac.jp';
+
+function mergeEnv(env: SupabaseEnv): SupabaseEnv {
+  cachedEnv = { ...cachedEnv, ...env };
+  return cachedEnv;
 }
 
-// クライアント用（ユーザー認証）
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export function initSupabase(env: SupabaseEnv = {}): void {
+  if (supabase && supabaseAdmin) {
+    mergeEnv(env);
+    return;
+  }
 
-// サービスロール用（管理操作）
-export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
+  const mergedEnv = mergeEnv(env);
 
-// メールドメインチェック
-export const ALLOWED_EMAIL_DOMAIN = process.env.ALLOWED_EMAIL_DOMAIN || 'ccmailg.meijo-u.ac.jp';
+  supabaseUrl = mergedEnv.SUPABASE_URL || '';
+  supabaseAnonKey = mergedEnv.SUPABASE_ANON_KEY || '';
+  supabaseServiceRoleKey = mergedEnv.SUPABASE_SERVICE_ROLE_KEY || '';
+  allowedEmailDomain = mergedEnv.ALLOWED_EMAIL_DOMAIN || 'ccmailg.meijo-u.ac.jp';
 
-export function isAllowedEmailDomain(email: string): boolean {
-  return email.endsWith(`@${ALLOWED_EMAIL_DOMAIN}`);
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Missing Supabase environment variables');
+  }
+
+  supabase = createClient(supabaseUrl, supabaseAnonKey);
+  supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey || supabaseAnonKey);
+}
+
+export function getSupabase(): SupabaseClient {
+  if (!supabase) {
+    throw new Error('Supabase client is not initialized');
+  }
+  return supabase;
+}
+
+export function getSupabaseAdmin(): SupabaseClient {
+  if (!supabaseAdmin) {
+    throw new Error('Supabase admin client is not initialized');
+  }
+  return supabaseAdmin;
+}
+
+export function getAllowedEmailDomain(): string {
+  return allowedEmailDomain;
+}
+
+export function getEnvVar(key: string, defaultValue?: string): string | undefined {
+  return cachedEnv[key] ?? defaultValue;
 }
 
 // ユーザーのJWTを付けてRLSを通すためのクライアント生成
 export function createClientWithToken(token: string) {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Supabase client is not initialized');
+  }
+
   return createClient(supabaseUrl, supabaseAnonKey, {
     global: {
       headers: {
@@ -30,4 +71,8 @@ export function createClientWithToken(token: string) {
       },
     },
   });
+}
+
+export function isAllowedEmailDomain(email: string): boolean {
+  return email.endsWith(`@${allowedEmailDomain}`);
 }

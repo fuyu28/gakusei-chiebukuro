@@ -1,10 +1,10 @@
-import { supabase, supabaseAdmin } from '../lib/supabase';
+import { getSupabase, getSupabaseAdmin, getEnvVar } from '../lib/supabase';
 import { TABLES } from '../constants/database';
 import { AppError } from '../utils/errors';
 import { ERROR_MESSAGES, HTTP_STATUS } from '../constants/http';
 import type { PastExamFileWithRelations } from '../types';
 
-const PAST_EXAM_BUCKET = process.env.SUPABASE_PAST_EXAM_BUCKET || 'past-exams';
+const getBucketName = () => getEnvVar('SUPABASE_PAST_EXAM_BUCKET') || 'past-exams';
 const ALLOWED_MIME_TYPES = [
   'application/pdf',
   'image/jpeg',
@@ -22,6 +22,7 @@ function sanitizeFileName(name: string): string {
 }
 
 async function ensureSubjectTagExists(subjectTagId: number): Promise<void> {
+  const supabase = getSupabase();
   const { data, error } = await supabase
     .from(TABLES.SUBJECT_TAGS)
     .select('id')
@@ -34,8 +35,9 @@ async function ensureSubjectTagExists(subjectTagId: number): Promise<void> {
 }
 
 async function createSignedUrl(filePath: string): Promise<string | null> {
+  const supabaseAdmin = getSupabaseAdmin();
   const { data, error } = await supabaseAdmin.storage
-    .from(PAST_EXAM_BUCKET)
+    .from(getBucketName())
     .createSignedUrl(filePath, SIGNED_URL_EXPIRATION);
 
   if (error || !data?.signedUrl) {
@@ -48,6 +50,7 @@ async function createSignedUrl(filePath: string): Promise<string | null> {
 
 export async function listPastExamFiles(subjectTagId?: number): Promise<PastExamFileWithRelations[]> {
   // 閲覧は全員可だが、RLS設定漏れでも落ちないようサービスロールで実行
+  const supabaseAdmin = getSupabaseAdmin();
   let query = supabaseAdmin
     .from(TABLES.PAST_EXAMS)
     .select(`
@@ -116,8 +119,9 @@ export async function uploadPastExamFile(params: {
   const normalizedName = params.file.name ? sanitizeFileName(params.file.name) : 'uploaded_file';
   const filePath = `subject-${params.subjectTagId}/${Date.now()}-${normalizedName}`;
 
+  const supabaseAdmin = getSupabaseAdmin();
   const { error: uploadError } = await supabaseAdmin.storage
-    .from(PAST_EXAM_BUCKET)
+    .from(getBucketName())
     .upload(filePath, fileBuffer, {
       contentType: params.file.type || 'application/octet-stream',
       upsert: false,
@@ -145,7 +149,7 @@ export async function uploadPastExamFile(params: {
     .single();
 
   if (error || !data) {
-    await supabaseAdmin.storage.from(PAST_EXAM_BUCKET).remove([filePath]);
+    await supabaseAdmin.storage.from(getBucketName()).remove([filePath]);
     throw new AppError(error?.message || ERROR_MESSAGES.FAILED_TO_UPLOAD_FILE, HTTP_STATUS.BAD_REQUEST);
   }
 
@@ -154,6 +158,7 @@ export async function uploadPastExamFile(params: {
 }
 
 export async function deletePastExamFileById(id: number): Promise<void> {
+  const supabaseAdmin = getSupabaseAdmin();
   const { data, error } = await supabaseAdmin
     .from(TABLES.PAST_EXAMS)
     .select('id, file_path')
@@ -165,7 +170,7 @@ export async function deletePastExamFileById(id: number): Promise<void> {
   }
 
   const { error: storageError } = await supabaseAdmin.storage
-    .from(PAST_EXAM_BUCKET)
+    .from(getBucketName())
     .remove([data.file_path]);
 
   if (storageError) {
