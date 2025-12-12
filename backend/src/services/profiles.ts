@@ -1,9 +1,9 @@
-import { supabase, supabaseAdmin } from '../lib/supabase';
+import { getSupabase, getSupabaseAdmin } from '../lib/supabase';
 import { TABLES } from '../constants/database';
 import { AppError } from '../utils/errors';
 import { HTTP_STATUS } from '../constants/http';
 
-const PROFILE_FIELDS = 'id, email, display_name, created_at, is_banned, total_likes';
+const PROFILE_FIELDS = 'id, email, display_name, created_at, is_banned, is_admin, total_likes';
 
 export type UserProfile = {
   id: string;
@@ -15,6 +15,7 @@ export type UserProfile = {
 };
 
 export async function findProfileById(id: string): Promise<UserProfile | null> {
+  const supabase = getSupabase();
   const { data, error } = await supabase
     .from(TABLES.PROFILES)
     .select(PROFILE_FIELDS)
@@ -41,6 +42,7 @@ export async function ensureUserProfile(params: {
   const fallbackDisplayName =
     params.displayName || params.email?.split('@')[0] || 'User';
 
+  const supabaseAdmin = getSupabaseAdmin();
   const { data, error } = await supabaseAdmin
     .from(TABLES.PROFILES)
     .insert({

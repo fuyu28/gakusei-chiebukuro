@@ -1,7 +1,7 @@
 import { Context, Next } from 'hono';
-import { supabase } from '../lib/supabase';
+import { getSupabase } from '../lib/supabase';
 import { HTTP_STATUS } from '../constants/http';
-import { isAdminEmail } from '../utils/admin';
+import { isAdminFlag } from '../utils/admin';
 import { AuthUser } from '../types';
 import { ensureUserProfile } from '../services/profiles';
 
@@ -16,6 +16,7 @@ export async function authMiddleware(c: Context, next: Next) {
   c.set('auth_token', token);
 
   try {
+    const supabase = getSupabase();
     const { data: { user }, error } = await supabase.auth.getUser(token);
 
     if (error || !user) {
@@ -35,7 +36,7 @@ export async function authMiddleware(c: Context, next: Next) {
     const authUser: AuthUser = {
       id: user.id,
       email: user.email || '',
-      is_admin: isAdminEmail(user.email || ''),
+      is_admin: isAdminFlag(profile?.is_admin),
       is_banned: profile?.is_banned ?? false,
     };
 
@@ -58,6 +59,7 @@ export async function optionalAuthMiddleware(c: Context, next: Next) {
   c.set('auth_token', token);
 
   try {
+    const supabase = getSupabase();
     const { data: { user }, error } = await supabase.auth.getUser(token);
 
     if (!error && user) {
@@ -71,7 +73,7 @@ export async function optionalAuthMiddleware(c: Context, next: Next) {
         const authUser: AuthUser = {
           id: user.id,
           email: user.email || '',
-          is_admin: isAdminEmail(user.email || ''),
+          is_admin: isAdminFlag(profile?.is_admin),
           is_banned: profile?.is_banned ?? false,
         };
         c.set('user', authUser);

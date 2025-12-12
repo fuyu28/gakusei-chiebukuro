@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase';
+import { getSupabase } from '../lib/supabase';
 import { HTTP_STATUS, ERROR_MESSAGES } from '../constants/http';
 import { TABLES } from '../constants/database';
 import { AppError } from './errors';
@@ -16,6 +16,7 @@ export async function verifyOwnership(
   id: number,
   userId: string
 ): Promise<{ user_id: string }> {
+  const supabase = getSupabase();
   const { data, error } = await supabase
     .from(table)
     .select('user_id')

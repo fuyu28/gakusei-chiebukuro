@@ -1,13 +1,14 @@
-import { supabaseAdmin } from '../lib/supabase';
+import { getSupabaseAdmin } from '../lib/supabase';
 import { TABLES } from '../constants/database';
 import { AppError } from '../utils/errors';
 import { HTTP_STATUS } from '../constants/http';
 import { AdminUserSummary } from '../types';
-import { isAdminEmail } from '../utils/admin';
+import { isAdminFlag } from '../utils/admin';
 
-const PROFILE_FIELDS = 'id, email, display_name, created_at, is_banned';
+const PROFILE_FIELDS = 'id, email, display_name, created_at, is_banned, is_admin';
 
 export async function listAllUsers(): Promise<AdminUserSummary[]> {
+  const supabaseAdmin = getSupabaseAdmin();
   const { data, error } = await supabaseAdmin
     .from(TABLES.PROFILES)
     .select(PROFILE_FIELDS)
@@ -21,6 +22,7 @@ export async function listAllUsers(): Promise<AdminUserSummary[]> {
 }
 
 export async function updateUserBanStatus(userId: string, isBanned: boolean): Promise<AdminUserSummary> {
+  const supabaseAdmin = getSupabaseAdmin();
   const { data: existing, error: fetchError } = await supabaseAdmin
     .from(TABLES.PROFILES)
     .select(PROFILE_FIELDS)
@@ -31,7 +33,7 @@ export async function updateUserBanStatus(userId: string, isBanned: boolean): Pr
     throw new AppError(fetchError?.message || 'User not found', HTTP_STATUS.NOT_FOUND);
   }
 
-  if (isAdminEmail(existing.email)) {
+  if (isAdminFlag(existing.is_admin)) {
     throw new AppError('Cannot ban administrator accounts', HTTP_STATUS.BAD_REQUEST);
   }
 

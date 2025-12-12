@@ -1,4 +1,4 @@
-import { supabase, supabaseAdmin, createClientWithToken } from '../lib/supabase';
+import { getSupabase, createClientWithToken } from '../lib/supabase';
 import { TABLES } from '../constants/database';
 import { Thread, ThreadWithDetails } from '../types';
 import { AppError } from '../utils/errors';
@@ -14,6 +14,7 @@ type ThreadFilters = {
 export async function listThreads(filters: ThreadFilters): Promise<ThreadWithDetails[]> {
   const { status, subject_tag_id, sort = 'created_at', order = 'desc' } = filters;
 
+  const supabase = getSupabase();
   let query = supabase
     .from(TABLES.THREADS)
     .select(`
@@ -49,6 +50,7 @@ export async function listThreads(filters: ThreadFilters): Promise<ThreadWithDet
 }
 
 export async function getThreadById(id: number): Promise<ThreadWithDetails> {
+  const supabase = getSupabase();
   const { data, error } = await supabase
     .from(TABLES.THREADS)
     .select(`
@@ -126,6 +128,7 @@ export async function deleteThreadById(id: number, token: string): Promise<void>
 }
 
 export async function getThreadOwner(threadId: number): Promise<{ user_id: string }> {
+  const supabase = getSupabase();
   const { data, error } = await supabase
     .from(TABLES.THREADS)
     .select('user_id')
