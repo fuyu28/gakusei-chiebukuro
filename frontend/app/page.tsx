@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { fetchThreads, fetchSubjectTags } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
 import type { Thread, SubjectTag } from '@/types';

@@ -3,7 +3,7 @@
 export const runtime = 'edge';
 
 import { useEffect, useState, FormEvent, useCallback } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   fetchThreadDetail,
@@ -23,7 +23,6 @@ import { SuccessToast } from '@/components/SuccessToast';
 export default function ThreadDetailPage() {
   const params = useParams();
   const threadId = Number(params.id);
-  const router = useRouter();
 
   const [thread, setThread] = useState<Thread | null>(null);
   const [answers, setAnswers] = useState<Answer[]>([]);
