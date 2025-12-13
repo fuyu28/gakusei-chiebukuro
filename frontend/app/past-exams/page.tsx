@@ -51,10 +51,10 @@ export default function PastExamsPage() {
       const data = await fetchPastExams(selectedTag === 'all' ? undefined : Number(selectedTag));
       setFiles(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : '過去問の取得に失敗しました');
+      setError(err instanceof Error ? err.message : '参考資料の取得に失敗しました');
       toast({
         variant: 'destructive',
-        title: '過去問の取得に失敗しました',
+        title: '参考資料の取得に失敗しました',
         description: err instanceof Error ? err.message : undefined,
       });
     } finally {
@@ -177,7 +177,7 @@ export default function PastExamsPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-sm uppercase tracking-[0.2em] text-primary font-semibold">Archive</p>
-          <h1 className="text-3xl font-bold leading-tight">過去問アーカイブ</h1>
+          <h1 className="text-3xl font-bold leading-tight">参考資料アーカイブ</h1>
           <p className="text-muted-foreground mt-1">PDF / JPEG / PNG を科目ごとにまとめて閲覧できます。</p>
         </div>
         <div className="space-y-1">
@@ -209,7 +209,7 @@ export default function PastExamsPage() {
         <Card className="shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0">
             <div className="space-y-1">
-              <CardTitle className="text-xl">過去問をアップロード</CardTitle>
+              <CardTitle className="text-xl">参考資料をアップロード</CardTitle>
               <p className="text-sm text-muted-foreground">PDF・JPEG・PNG を10MB以内でアップロードできます。</p>
             </div>
             {selectedFiles.length > 0 && (
@@ -279,7 +279,7 @@ export default function PastExamsPage() {
 
       <Card className="shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-xl">過去問一覧</CardTitle>
+          <CardTitle className="text-xl">参考資料一覧</CardTitle>
           <p className="text-sm text-muted-foreground">{files.length} 件</p>
         </CardHeader>
         <CardContent>
@@ -290,7 +290,7 @@ export default function PastExamsPage() {
             </div>
           ) : files.length === 0 ? (
             <div className="rounded-lg border border-dashed border-muted-foreground/30 px-4 py-10 text-center text-muted-foreground">
-              {selectedTag === 'all' ? 'アップロードされた過去問はまだありません' : 'この科目の過去問はまだありません'}
+              {selectedTag === 'all' ? 'アップロードされた参考資料はまだありません' : 'この科目の参考資料はまだありません'}
             </div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2">

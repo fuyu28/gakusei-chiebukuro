@@ -206,7 +206,7 @@ export const fetchSubjectTags = async () => {
   return data.tags;
 };
 
-// 過去問API
+// 参考資料API
 export const fetchPastExams = async (subjectTagId?: number): Promise<PastExamFile[]> => {
   const params = new URLSearchParams();
   if (subjectTagId) {

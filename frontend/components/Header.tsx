@@ -39,7 +39,7 @@ export default function Header() {
 
         <nav className="hidden items-center gap-1 md:flex">
           <Button variant="ghost" asChild>
-            <Link href="/past-exams">過去問</Link>
+            <Link href="/past-exams">参考資料</Link>
           </Button>
           {isAuthenticated && (
             <Button variant="ghost" asChild>
@@ -55,7 +55,7 @@ export default function Header() {
 
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm" asChild className="md:hidden">
-            <Link href="/past-exams">過去問</Link>
+            <Link href="/past-exams">参考資料</Link>
           </Button>
           {isAuthenticated ? (
             <DropdownMenu>
@@ -88,7 +88,7 @@ export default function Header() {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link href="/past-exams">過去問</Link>
+                  <Link href="/past-exams">参考資料</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href="/threads/new">質問する</Link>
