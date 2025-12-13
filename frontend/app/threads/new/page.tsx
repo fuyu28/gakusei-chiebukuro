@@ -4,7 +4,7 @@ import { useState, FormEvent, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { createThread, fetchSubjectTags } from '@/lib/api';
 import type { SubjectTag } from '@/types';
-import { useAuth } from '@/lib/auth-context';
+import { useRequireAuth } from '@/lib/auth-context';
 
 export default function NewThreadPage() {
   const [title, setTitle] = useState('');
@@ -15,13 +15,7 @@ export default function NewThreadPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const { isAuthenticated, loading: authLoading } = useAuth();
-
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      router.push('/login');
-    }
-  }, [authLoading, isAuthenticated, router]);
+  const { isAuthenticated, loading: authLoading } = useRequireAuth();
 
   const loadTags = useCallback(async () => {
     try {
@@ -37,6 +31,20 @@ export default function NewThreadPage() {
       loadTags();
     }
   }, [isAuthenticated, loadTags]);
+
+  if (authLoading) {
+    return (
+      <main className="container mx-auto px-4 py-8">
+        <div className="flex justify-center py-12">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+        </div>
+      </main>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return null;
+  }
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
