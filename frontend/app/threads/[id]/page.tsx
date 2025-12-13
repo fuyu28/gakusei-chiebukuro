@@ -3,7 +3,7 @@
 export const runtime = 'edge';
 
 import { useEffect, useState, FormEvent, useCallback } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   fetchThreadDetail,
@@ -23,6 +23,7 @@ import { SuccessToast } from '@/components/SuccessToast';
 export default function ThreadDetailPage() {
   const params = useParams();
   const threadId = Number(params.id);
+  const router = useRouter();
 
   const [thread, setThread] = useState<Thread | null>(null);
   const [answers, setAnswers] = useState<Answer[]>([]);
@@ -31,7 +32,7 @@ export default function ThreadDetailPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [likeLoadingIds, setLikeLoadingIds] = useState<Set<number>>(new Set());
-  const { user: currentUser, isAuthenticated } = useAuth();
+  const { user: currentUser, isAuthenticated, loading: authLoading } = useAuth();
 
   const loadData = useCallback(async () => {
     try {
@@ -51,8 +52,29 @@ export default function ThreadDetailPage() {
   }, [threadId]);
 
   useEffect(() => {
+    if (!isAuthenticated) return;
     loadData();
-  }, [loadData]);
+  }, [isAuthenticated, loadData]);
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      router.replace('/login');
+    }
+  }, [authLoading, isAuthenticated, router]);
+
+  if (authLoading) {
+    return (
+      <main className="container mx-auto px-4 py-8">
+        <div className="flex justify-center py-12">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+        </div>
+      </main>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return null;
+  }
 
   const handleSubmitAnswer = async (e: FormEvent) => {
     e.preventDefault();

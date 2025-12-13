@@ -2,9 +2,11 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { fetchThreads, fetchSubjectTags } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
 import type { Thread, SubjectTag } from '@/types';
+import { useAuth } from '@/lib/auth-context';
 
 export default function Home() {
   const [threads, setThreads] = useState<Thread[]>([]);
@@ -13,6 +15,8 @@ export default function Home() {
   const [statusFilter, setStatusFilter] = useState<'open' | 'resolved' | ''>('');
   const [tagFilter, setTagFilter] = useState<number | ''>('');
   const [sortBy, setSortBy] = useState('created_at');
+  const { isAuthenticated, loading: authLoading } = useAuth();
+  const router = useRouter();
 
   const loadTags = useCallback(async () => {
     try {
@@ -41,12 +45,34 @@ export default function Home() {
   }, [statusFilter, tagFilter, sortBy]);
 
   useEffect(() => {
+    if (!isAuthenticated) return;
     loadTags();
-  }, [loadTags]);
+  }, [isAuthenticated, loadTags]);
 
   useEffect(() => {
+    if (!isAuthenticated) return;
     loadThreads();
-  }, [loadThreads]);
+  }, [isAuthenticated, loadThreads]);
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      router.replace('/login');
+    }
+  }, [authLoading, isAuthenticated, router]);
+
+  if (authLoading) {
+    return (
+      <main className="container mx-auto px-4 py-12">
+        <div className="flex justify-center">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+        </div>
+      </main>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return null;
+  }
 
   return (
     <main className="container mx-auto px-4 py-8">
