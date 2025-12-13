@@ -17,7 +17,7 @@ import {
 } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
 import type { Thread, Answer } from '@/types';
-import { useAuth } from '@/lib/auth-context';
+import { useAuth, useRequireAuth } from '@/lib/auth-context';
 import { SuccessToast } from '@/components/SuccessToast';
 
 export default function ThreadDetailPage() {
@@ -32,7 +32,8 @@ export default function ThreadDetailPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [likeLoadingIds, setLikeLoadingIds] = useState<Set<number>>(new Set());
-  const { user: currentUser, isAuthenticated, loading: authLoading } = useAuth();
+  const { user: currentUser } = useAuth();
+  const { isAuthenticated, loading: authLoading } = useRequireAuth();
 
   const loadData = useCallback(async () => {
     try {
@@ -55,26 +56,6 @@ export default function ThreadDetailPage() {
     if (!isAuthenticated) return;
     loadData();
   }, [isAuthenticated, loadData]);
-
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      router.replace('/login');
-    }
-  }, [authLoading, isAuthenticated, router]);
-
-  if (authLoading) {
-    return (
-      <main className="container mx-auto px-4 py-8">
-        <div className="flex justify-center py-12">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
-        </div>
-      </main>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return null;
-  }
 
   const handleSubmitAnswer = async (e: FormEvent) => {
     e.preventDefault();
@@ -171,6 +152,20 @@ export default function ThreadDetailPage() {
       setError(err instanceof Error ? err.message : 'スレッドの更新に失敗しました');
     }
   };
+
+  if (authLoading) {
+    return (
+      <main className="container mx-auto px-4 py-8">
+        <div className="flex justify-center py-12">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+        </div>
+      </main>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return null;
+  }
 
   if (loading) {
     return (

@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useCallback, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import type { User } from '@/types';
 import { getCurrentUser, logout as apiLogout, isLoggedIn } from '@/lib/api';
 
@@ -71,4 +72,20 @@ export function useAuth() {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
+}
+
+/**
+ * Redirects to the given path when unauthenticated and exposes auth loading state.
+ */
+export function useRequireAuth(redirectTo = '/login') {
+  const { isAuthenticated, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && !isAuthenticated) {
+      router.replace(redirectTo);
+    }
+  }, [loading, isAuthenticated, redirectTo, router]);
+
+  return { isAuthenticated, loading };
 }

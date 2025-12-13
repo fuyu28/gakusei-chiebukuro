@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { fetchPastExams, fetchSubjectTags, uploadPastExam, deletePastExam } from '@/lib/api';
 import { formatDate, formatFileSize } from '@/lib/utils';
 import type { PastExamFile, SubjectTag } from '@/types';
-import { useAuth } from '@/lib/auth-context';
+import { useAuth, useRequireAuth } from '@/lib/auth-context';
 
 export default function PastExamsPage() {
   const [files, setFiles] = useState<PastExamFile[]>([]);
@@ -18,8 +18,8 @@ export default function PastExamsPage() {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [title, setTitle] = useState('');
-  const { isAuthenticated, user, loading: authLoading } = useAuth();
-  const router = useRouter();
+  const { user } = useAuth();
+  const { isAuthenticated, loading: authLoading } = useRequireAuth();
   const isAdmin = Boolean(user?.is_admin);
 
   const fileTypeLabel = (mime: string) => {
@@ -60,11 +60,19 @@ export default function PastExamsPage() {
     loadFiles();
   }, [isAuthenticated, loadFiles]);
 
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      router.replace('/login');
-    }
-  }, [authLoading, isAuthenticated, router]);
+  if (authLoading) {
+    return (
+      <main className="container mx-auto px-4 py-8">
+        <div className="flex justify-center py-12">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+        </div>
+      </main>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return null;
+  }
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files ? Array.from(event.target.files) : [];

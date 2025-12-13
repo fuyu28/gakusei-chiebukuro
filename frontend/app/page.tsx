@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { fetchThreads, fetchSubjectTags } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
 import type { Thread, SubjectTag } from '@/types';
-import { useAuth } from '@/lib/auth-context';
+import { useRequireAuth } from '@/lib/auth-context';
 
 export default function Home() {
   const [threads, setThreads] = useState<Thread[]>([]);
@@ -15,8 +15,7 @@ export default function Home() {
   const [statusFilter, setStatusFilter] = useState<'open' | 'resolved' | ''>('');
   const [tagFilter, setTagFilter] = useState<number | ''>('');
   const [sortBy, setSortBy] = useState('created_at');
-  const { isAuthenticated, loading: authLoading } = useAuth();
-  const router = useRouter();
+  const { isAuthenticated, loading: authLoading } = useRequireAuth();
 
   const loadTags = useCallback(async () => {
     try {
@@ -53,12 +52,6 @@ export default function Home() {
     if (!isAuthenticated) return;
     loadThreads();
   }, [isAuthenticated, loadThreads]);
-
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      router.replace('/login');
-    }
-  }, [authLoading, isAuthenticated, router]);
 
   if (authLoading) {
     return (
