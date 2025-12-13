@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useCallback, useState } from 'rea
 import { useRouter } from 'next/navigation';
 import type { User } from '@/types';
 import { getCurrentUser, logout as apiLogout, isLoggedIn } from '@/lib/api';
+import { showGlobalSuccessToast } from '@/lib/toast-events';
 
 type AuthContextValue = {
   user: User | null;
@@ -76,16 +77,23 @@ export function useAuth() {
 
 /**
  * Redirects to the given path when unauthenticated and exposes auth loading state.
+ * Optionally shows a one-shot toast message.
  */
-export function useRequireAuth(redirectTo = '/login') {
+export function useRequireAuth(
+  redirectTo = '/login',
+  options?: { message?: string; showToast?: boolean }
+) {
   const { isAuthenticated, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
+      if (options?.showToast !== false) {
+        showGlobalSuccessToast(options?.message ?? 'ログインしてください');
+      }
       router.replace(redirectTo);
     }
-  }, [loading, isAuthenticated, redirectTo, router]);
+  }, [loading, isAuthenticated, redirectTo, router, options?.message, options?.showToast]);
 
   return { isAuthenticated, loading };
 }

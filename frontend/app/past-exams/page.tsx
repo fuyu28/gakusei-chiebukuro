@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState, FormEvent, ChangeEvent } from 'react';
+import { useRouter } from 'next/navigation';
 import { fetchPastExams, fetchSubjectTags, uploadPastExam, deletePastExam } from '@/lib/api';
 import { formatDate, formatFileSize } from '@/lib/utils';
 import type { PastExamFile, SubjectTag } from '@/types';
@@ -134,6 +135,20 @@ export default function PastExamsPage() {
       setDeletingId(null);
     }
   };
+
+  if (authLoading) {
+    return (
+      <main className="container mx-auto px-4 py-8">
+        <div className="flex justify-center py-12">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+        </div>
+      </main>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return null;
+  }
 
   return (
     <main className="container mx-auto px-4 py-8">
