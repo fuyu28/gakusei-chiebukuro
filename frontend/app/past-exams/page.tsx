@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState, FormEvent, ChangeEvent } from 'react'
 import { fetchPastExams, fetchSubjectTags, uploadPastExam, deletePastExam } from '@/lib/api';
 import { formatDate, formatFileSize } from '@/lib/utils';
 import type { PastExamFile, SubjectTag } from '@/types';
-import { useAuth } from '@/lib/auth-context';
+import { useAuth, useRequireAuth } from '@/lib/auth-context';
 
 export default function PastExamsPage() {
   const [files, setFiles] = useState<PastExamFile[]>([]);
@@ -17,7 +17,8 @@ export default function PastExamsPage() {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [title, setTitle] = useState('');
-  const { isAuthenticated, user } = useAuth();
+  const { user } = useAuth();
+  const { isAuthenticated, loading: authLoading } = useRequireAuth();
   const isAdmin = Boolean(user?.is_admin);
 
   const fileTypeLabel = (mime: string) => {
@@ -49,12 +50,28 @@ export default function PastExamsPage() {
   }, [selectedTag]);
 
   useEffect(() => {
+    if (!isAuthenticated) return;
     loadTags();
-  }, [loadTags]);
+  }, [isAuthenticated, loadTags]);
 
   useEffect(() => {
+    if (!isAuthenticated) return;
     loadFiles();
-  }, [loadFiles]);
+  }, [isAuthenticated, loadFiles]);
+
+  if (authLoading) {
+    return (
+      <main className="container mx-auto px-4 py-8">
+        <div className="flex justify-center py-12">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+        </div>
+      </main>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return null;
+  }
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files ? Array.from(event.target.files) : [];
