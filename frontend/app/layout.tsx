@@ -17,7 +17,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja">
-      <body className="bg-gray-50">
+      <body className="bg-background text-foreground">
         <AuthProvider>
           <GlobalSuccessToast />
           <div className="flex min-h-screen flex-col">
