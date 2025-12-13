@@ -5,17 +5,26 @@ import { useRouter } from 'next/navigation';
 import { createThread, fetchSubjectTags } from '@/lib/api';
 import type { SubjectTag } from '@/types';
 import { useRequireAuth } from '@/lib/auth-context';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useToast } from '@/hooks/use-toast';
 
 export default function NewThreadPage() {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [subjectTagId, setSubjectTagId] = useState<number | ''>('');
+  const [subjectTagId, setSubjectTagId] = useState<string | undefined>(undefined);
   const [deadline, setDeadline] = useState('');
   const [tags, setTags] = useState<SubjectTag[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { isAuthenticated, loading: authLoading } = useRequireAuth();
+  const { toast } = useToast();
 
   const loadTags = useCallback(async () => {
     try {
@@ -36,7 +45,7 @@ export default function NewThreadPage() {
     return (
       <main className="container mx-auto px-4 py-8">
         <div className="flex justify-center py-12">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
         </div>
       </main>
     );
@@ -66,9 +75,15 @@ export default function NewThreadPage() {
         deadline: deadlineISO,
       });
 
+      toast({ description: '質問を投稿しました' });
       router.push(`/threads/${thread.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : '投稿に失敗しました');
+      toast({
+        variant: 'destructive',
+        title: '投稿に失敗しました',
+        description: err instanceof Error ? err.message : undefined,
+      });
     } finally {
       setLoading(false);
     }
@@ -76,101 +91,92 @@ export default function NewThreadPage() {
 
   return (
     <main className="container mx-auto px-4 py-8">
-      <div className="max-w-3xl mx-auto bg-white rounded-lg shadow-md p-8">
-        <h1 className="text-2xl font-bold mb-6">質問を投稿</h1>
+      <Card className="mx-auto max-w-3xl shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-2xl">質問を投稿</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {error && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertTitle>エラー</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="space-y-2">
+              <Label htmlFor="title">
+                タイトル <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="質問のタイトルを入力してください"
+                maxLength={200}
+                required
+              />
+            </div>
 
-        {error && (
-          <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg">
-            {error}
-          </div>
-        )}
+            <div className="space-y-2">
+              <Label htmlFor="content">
+                質問内容 <span className="text-destructive">*</span>
+              </Label>
+              <Textarea
+                id="content"
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder="質問の詳細を入力してください"
+                required
+                rows={8}
+              />
+            </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label htmlFor="title" className="block text-sm font-medium mb-2">
-              タイトル <span className="text-red-600">*</span>
-            </label>
-            <input
-              type="text"
-              id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="質問のタイトルを入力してください"
-              maxLength={200}
-              required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
+            <div className="space-y-2">
+              <Label htmlFor="subjectTag">
+                科目 <span className="text-destructive">*</span>
+              </Label>
+              <Select value={subjectTagId} onValueChange={(value) => setSubjectTagId(value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="科目を選択してください" />
+                </SelectTrigger>
+                <SelectContent>
+                  {tags.map((tag) => (
+                    <SelectItem key={tag.id} value={String(tag.id)}>
+                      {tag.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-          <div>
-            <label htmlFor="content" className="block text-sm font-medium mb-2">
-              質問内容 <span className="text-red-600">*</span>
-            </label>
-            <textarea
-              id="content"
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="質問の詳細を入力してください"
-              required
-              rows={8}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
+            <div className="space-y-2">
+              <Label htmlFor="deadline">回答締切（任意）</Label>
+              <Input
+                type="datetime-local"
+                id="deadline"
+                value={deadline}
+                onChange={(e) => setDeadline(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                締切を設定すると、その日時以降は回答できなくなります
+              </p>
+            </div>
 
-          <div>
-            <label htmlFor="subjectTag" className="block text-sm font-medium mb-2">
-              科目 <span className="text-red-600">*</span>
-            </label>
-            <select
-              id="subjectTag"
-              value={subjectTagId}
-              onChange={(e) => setSubjectTagId(e.target.value ? parseInt(e.target.value) : '')}
-              required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="">科目を選択してください</option>
-              {tags.map((tag) => (
-                <option key={tag.id} value={tag.id}>
-                  {tag.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="deadline" className="block text-sm font-medium mb-2">
-              回答締切（任意）
-            </label>
-            <input
-              type="datetime-local"
-              id="deadline"
-              value={deadline}
-              onChange={(e) => setDeadline(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-            <p className="mt-1 text-xs text-gray-500">
-              締切を設定すると、その日時以降は回答できなくなります
-            </p>
-          </div>
-
-          <div className="flex gap-4">
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
-            >
-              {loading ? '投稿中...' : '投稿する'}
-            </button>
-            <button
-              type="button"
-              onClick={() => router.push('/')}
-              className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-            >
-              キャンセル
-            </button>
-          </div>
-        </form>
-      </div>
+            <div className="flex gap-3">
+              <Button type="submit" disabled={loading} className="flex-1">
+                {loading ? '投稿中...' : '投稿する'}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => router.push('/')}
+              >
+                キャンセル
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
     </main>
   );
 }
