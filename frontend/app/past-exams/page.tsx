@@ -174,16 +174,16 @@ export default function PastExamsPage() {
 
   return (
     <main className="container mx-auto px-4 py-8 space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
+      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div className="space-y-1">
           <p className="text-sm uppercase tracking-[0.2em] text-primary font-semibold">Archive</p>
           <h1 className="text-3xl font-bold leading-tight">参考資料アーカイブ</h1>
           <p className="text-muted-foreground mt-1">PDF / JPEG / PNG を科目ごとにまとめて閲覧できます。</p>
         </div>
-        <div className="space-y-1">
+        <div className="space-y-1 md:min-w-[12rem]">
           <Label className="text-xs text-muted-foreground">科目フィルター</Label>
           <Select value={selectedTag} onValueChange={(value) => setSelectedTag(value)}>
-            <SelectTrigger className="w-48">
+            <SelectTrigger className="w-full md:w-48">
               <SelectValue placeholder="すべて" />
             </SelectTrigger>
             <SelectContent>
@@ -266,8 +266,8 @@ export default function PastExamsPage() {
                   )}
                 </div>
 
-                <div className="flex justify-end">
-                  <Button type="submit" disabled={uploading}>
+                <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                  <Button type="submit" disabled={uploading} className="w-full sm:w-auto">
                     {uploading ? 'アップロード中...' : 'アップロード'}
                   </Button>
                 </div>
@@ -313,10 +313,10 @@ export default function PastExamsPage() {
                         アップロード: {file.uploader?.display_name || file.uploader?.email || '不明'}
                       </p>
                     </div>
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div className="flex items-center gap-3">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex flex-wrap items-center gap-3">
                         {file.download_url && (
-                          <Button asChild size="sm">
+                          <Button asChild size="sm" className="w-full sm:w-auto">
                             <a
                               href={file.download_url}
                               target="_blank"
@@ -332,7 +332,7 @@ export default function PastExamsPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="text-destructive"
+                          className="text-destructive w-full sm:w-auto"
                           onClick={() => handleDelete(file.id)}
                           disabled={deletingId === file.id}
                         >

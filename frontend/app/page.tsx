@@ -90,7 +90,7 @@ export default function Home() {
             <p className="text-sm text-muted-foreground">みんなの質問をチェック</p>
             <h1 className="text-3xl font-bold tracking-tight">質問一覧</h1>
           </div>
-          <Button asChild variant="outline">
+          <Button asChild variant="outline" className="w-full sm:w-auto">
             <Link href="/threads/new">質問を投稿する</Link>
           </Button>
         </div>
@@ -98,7 +98,7 @@ export default function Home() {
           <CardHeader className="pb-2">
             <CardTitle className="text-base">絞り込み</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-3">
+          <CardContent className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
             <div className="space-y-2">
               <Label>ステータス</Label>
               <Select
@@ -202,7 +202,7 @@ export default function Home() {
                   <Badge variant="outline">{thread.answers_count || 0}件の回答</Badge>
                 </div>
                 <div className="flex justify-end">
-                  <Button asChild variant="outline" size="sm">
+                  <Button asChild variant="outline" size="sm" className="w-full sm:w-auto">
                     <Link href={`/threads/${thread.id}`}>詳細をみる</Link>
                   </Button>
                 </div>

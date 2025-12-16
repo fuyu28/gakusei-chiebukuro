@@ -13,7 +13,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 
 export default function Header() {
   const { user, isAuthenticated, logout } = useAuth();
@@ -59,9 +58,30 @@ export default function Header() {
           </nav>
 
           {isAuthenticated && (
-            <Button variant="ghost" size="sm" asChild className="md:hidden">
-              <Link href="/past-exams">参考資料</Link>
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="md:hidden"
+                >
+                  メニュー
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44 md:hidden">
+                <DropdownMenuItem asChild>
+                  <Link href="/past-exams">参考資料</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/threads/new">質問する</Link>
+                </DropdownMenuItem>
+                {user?.is_admin && (
+                  <DropdownMenuItem asChild>
+                    <Link href="/admin/users">管理</Link>
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
           {isAuthenticated ? (
             <DropdownMenu>

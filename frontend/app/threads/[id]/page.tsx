@@ -271,7 +271,7 @@ export default function ThreadDetailPage() {
             </div>
           </div>
           {isAuthor && thread.status !== 'resolved' && (
-            <Button variant="outline" onClick={handleResolveThread}>
+            <Button variant="outline" onClick={handleResolveThread} className="w-full sm:w-auto">
               解決済みにする
             </Button>
           )}
@@ -346,7 +346,7 @@ export default function ThreadDetailPage() {
                     answer.is_best_answer ? 'border-primary bg-primary/5' : ''
                   }`}
                 >
-                  <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-3 text-sm text-muted-foreground">
                       <Avatar className="h-8 w-8">
                         <AvatarFallback>{answerInitial}</AvatarFallback>
@@ -358,7 +358,7 @@ export default function ThreadDetailPage() {
                         <div>{formatDate(answer.created_at)}</div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       {answer.is_best_answer && <Badge>ベストアンサー</Badge>}
                       {!isAuthor && (
                         <Button
@@ -366,7 +366,7 @@ export default function ThreadDetailPage() {
                           size="sm"
                           onClick={() => handleToggleLike(answer)}
                           disabled={likeLoadingIds.has(answer.id)}
-                          className="gap-2"
+                          className="gap-2 w-full sm:w-auto"
                         >
                           <span>👍</span>
                           {answer.likes_count || 0}
@@ -377,6 +377,7 @@ export default function ThreadDetailPage() {
                           variant="secondary"
                           size="sm"
                           onClick={() => handleSelectBestAnswer(answer.id)}
+                          className="w-full sm:w-auto"
                         >
                           ベストに選ぶ
                         </Button>
@@ -385,8 +386,8 @@ export default function ThreadDetailPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="text-destructive"
                           onClick={() => handleDeleteAnswer(answer.id)}
+                          className="w-full sm:w-auto text-destructive"
                         >
                           削除
                         </Button>

@@ -162,14 +162,15 @@ export default function NewThreadPage() {
               </p>
             </div>
 
-            <div className="flex gap-3">
-              <Button type="submit" disabled={loading} className="flex-1">
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Button type="submit" disabled={loading} className="w-full sm:w-auto">
                 {loading ? '投稿中...' : '投稿する'}
               </Button>
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => router.push('/')}
+                className="w-full sm:w-auto"
               >
                 キャンセル
               </Button>
