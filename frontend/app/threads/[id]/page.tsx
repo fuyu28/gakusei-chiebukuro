@@ -25,6 +25,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
+import { LoadingIndicator } from '@/components/ui/loading-indicator';
 
 export default function ThreadDetailPage() {
   const params = useParams();
@@ -193,9 +194,7 @@ export default function ThreadDetailPage() {
   if (authLoading) {
     return (
       <main className="container mx-auto px-4 py-8">
-        <div className="flex justify-center py-12">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-        </div>
+        <LoadingIndicator />
       </main>
     );
   }
@@ -209,7 +208,7 @@ export default function ThreadDetailPage() {
       <main className="container mx-auto px-4 py-8">
         <Card className="shadow-sm">
           <CardContent className="flex items-center justify-center py-12">
-            <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+            <LoadingIndicator />
           </CardContent>
         </Card>
       </main>

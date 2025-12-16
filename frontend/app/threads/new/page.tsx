@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
+import { LoadingIndicator } from '@/components/ui/loading-indicator';
 
 export default function NewThreadPage() {
   const [title, setTitle] = useState('');
@@ -44,9 +45,7 @@ export default function NewThreadPage() {
   if (authLoading) {
     return (
       <main className="container mx-auto px-4 py-8">
-        <div className="flex justify-center py-12">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-        </div>
+        <LoadingIndicator />
       </main>
     );
   }

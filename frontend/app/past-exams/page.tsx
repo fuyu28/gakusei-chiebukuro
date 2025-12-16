@@ -13,6 +13,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
+import { PageHeader } from '@/components/ui/page-header';
+import { LoadingIndicator } from '@/components/ui/loading-indicator';
 
 export default function PastExamsPage() {
   const [files, setFiles] = useState<PastExamFile[]>([]);
@@ -75,9 +77,7 @@ export default function PastExamsPage() {
   if (authLoading) {
     return (
       <main className="container mx-auto px-4 py-8">
-        <div className="flex justify-center py-12">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
-        </div>
+        <LoadingIndicator />
       </main>
     );
   }
@@ -161,9 +161,7 @@ export default function PastExamsPage() {
   if (authLoading) {
     return (
       <main className="container mx-auto px-4 py-8">
-        <div className="flex justify-center py-12">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
-        </div>
+        <LoadingIndicator />
       </main>
     );
   }
@@ -174,29 +172,29 @@ export default function PastExamsPage() {
 
   return (
     <main className="container mx-auto px-4 py-8 space-y-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div className="space-y-1">
-          <p className="text-sm uppercase tracking-[0.2em] text-primary font-semibold">Archive</p>
-          <h1 className="text-3xl font-bold leading-tight">参考資料アーカイブ</h1>
-          <p className="text-muted-foreground mt-1">PDF / JPEG / PNG を科目ごとにまとめて閲覧できます。</p>
-        </div>
-        <div className="space-y-1 md:min-w-[12rem]">
-          <Label className="text-xs text-muted-foreground">科目フィルター</Label>
-          <Select value={selectedTag} onValueChange={(value) => setSelectedTag(value)}>
-            <SelectTrigger className="w-full md:w-48">
-              <SelectValue placeholder="すべて" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">すべて</SelectItem>
-              {tags.map((tag) => (
-                <SelectItem key={tag.id} value={String(tag.id)}>
-                  {tag.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Archive"
+        title="参考資料アーカイブ"
+        description="PDF / JPEG / PNG を科目ごとにまとめて閲覧できます。"
+        action={
+          <div className="space-y-1 md:min-w-[12rem]">
+            <Label className="text-xs text-muted-foreground">科目フィルター</Label>
+            <Select value={selectedTag} onValueChange={(value) => setSelectedTag(value)}>
+              <SelectTrigger className="w-full md:w-48">
+                <SelectValue placeholder="すべて" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">すべて</SelectItem>
+                {tags.map((tag) => (
+                  <SelectItem key={tag.id} value={String(tag.id)}>
+                    {tag.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        }
+      />
 
       {error && (
         <Alert variant="destructive">
@@ -284,10 +282,7 @@ export default function PastExamsPage() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex flex-col items-center gap-3 py-10 text-muted-foreground">
-              <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-              <p>読み込み中です...</p>
-            </div>
+            <LoadingIndicator label="読み込み中です..." className="py-6" />
           ) : files.length === 0 ? (
             <div className="rounded-lg border border-dashed border-muted-foreground/30 px-4 py-10 text-center text-muted-foreground">
               {selectedTag === 'all' ? 'アップロードされた参考資料はまだありません' : 'この科目の参考資料はまだありません'}

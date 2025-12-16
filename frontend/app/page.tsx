@@ -9,10 +9,12 @@ import { useRequireAuth } from '@/lib/auth-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
+import { PageHeader } from '@/components/ui/page-header';
+import { LoadingIndicator } from '@/components/ui/loading-indicator';
 
 export default function Home() {
   const [threads, setThreads] = useState<Thread[]>([]);
@@ -71,9 +73,7 @@ export default function Home() {
   if (authLoading) {
     return (
       <main className="container mx-auto px-4 py-12">
-        <div className="flex justify-center">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
-        </div>
+        <LoadingIndicator />
       </main>
     );
   }
@@ -85,15 +85,15 @@ export default function Home() {
   return (
     <main className="container mx-auto px-4 py-8 space-y-6">
       <div className="flex flex-col gap-2">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-sm text-muted-foreground">みんなの質問をチェック</p>
-            <h1 className="text-3xl font-bold tracking-tight">質問一覧</h1>
-          </div>
-          <Button asChild variant="outline" className="w-full sm:w-auto">
-            <Link href="/threads/new">質問を投稿する</Link>
-          </Button>
-        </div>
+        <PageHeader
+          eyebrow="みんなの質問をチェック"
+          title="質問一覧"
+          action={
+            <Button asChild variant="outline" className="w-full sm:w-auto">
+              <Link href="/threads/new">質問を投稿する</Link>
+            </Button>
+          }
+        />
         <Card className="shadow-sm">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">絞り込み</CardTitle>
@@ -157,7 +157,7 @@ export default function Home() {
       {loading ? (
         <Card className="shadow-sm">
           <CardContent className="flex items-center justify-center py-12">
-            <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+            <LoadingIndicator label="読み込み中です..." />
           </CardContent>
         </Card>
       ) : threads.length === 0 ? (
