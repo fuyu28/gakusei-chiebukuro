@@ -56,33 +56,6 @@ export default function Header() {
               </Button>
             )}
           </nav>
-
-          {isAuthenticated && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="md:hidden"
-                >
-                  メニュー
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-44 md:hidden">
-                <DropdownMenuItem asChild>
-                  <Link href="/past-exams">参考資料</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/threads/new">質問する</Link>
-                </DropdownMenuItem>
-                {user?.is_admin && (
-                  <DropdownMenuItem asChild>
-                    <Link href="/admin/users">管理</Link>
-                  </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
           {isAuthenticated ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
