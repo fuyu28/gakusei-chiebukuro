@@ -36,7 +36,7 @@ function parseIdParam(idParam: string, errorMessage: string): number {
 
 const pastExams = new Hono<{ Variables: { user: AuthUser } }>();
 pastExams.onError(handleError);
-// 過去問一覧取得（科目でフィルタ可能）
+// 参考資料一覧取得（科目でフィルタ可能）
 pastExams.get('/', async (c) => {
   const subjectTagParam = c.req.query('subject_tag_id');
   const subjectTagId = subjectTagParam ? parseInt(subjectTagParam, 10) : undefined;
@@ -49,7 +49,7 @@ pastExams.get('/', async (c) => {
   return c.json({ files });
 });
 
-// 過去問アップロード
+// 参考資料アップロード
 pastExams.post('/', authMiddleware, async (c) => {
   const user = c.get('user');
   const formData = await c.req.parseBody();

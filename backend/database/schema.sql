@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS answers (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 過去問ファイル
+-- 参考資料ファイル
 CREATE TABLE IF NOT EXISTS past_exam_files (
   id SERIAL PRIMARY KEY,
   subject_tag_id INTEGER REFERENCES subject_tags(id) NOT NULL,

@@ -15,7 +15,7 @@ Yahoo!知恵袋のような形式で、学生同士が学習に関する質問�
 - **解決済/未解決**: ステータスで質問を管理
 - **回答締切**: 質問に回答期限を設定可能
 - **回答へのいいね**: 役立つ回答にいいねをすることが可能（獲得したいいね数はプロフィールに表示）
-- **過去問アーカイブ**: PDF / 画像をアップロードし、科目ごとに共有・閲覧
+- **参考資料アーカイブ**: PDF / 画像をアップロードし、科目ごとに共有・閲覧
 - **フィルタ機能**: ステータスや科目でフィルタリング
 - **管理者ダッシュボード**: 指定した管理者がユーザー一覧の確認やBAN/解除を実行可能
 
@@ -120,7 +120,7 @@ ADMIN_EMAILS=admin1@ccmailg.meijo-u.ac.jp,admin2@ccmailg.meijo-u.ac.jp
 ```
 
 `ADMIN_EMAILS` には管理者権限を付与したいメールアドレスをカンマ区切りで指定します。指定されたユーザーは管理者ダッシュボードへアクセスでき、BAN 操作などを実行できます。
-`SUPABASE_PAST_EXAM_BUCKET` は過去問ファイルを保存する Supabase Storage バケット名です（デフォルト `past-exams`）。
+`SUPABASE_PAST_EXAM_BUCKET` は参考資料ファイルを保存する Supabase Storage バケット名です（デフォルト `past-exams`）。
 
 ### 3. フロントエンドのセットアップ
 
@@ -198,10 +198,10 @@ docker-compose up -d --build
 - `GET /api/subject-tags` - 科目タグ一覧取得
 - `POST /api/subject-tags` - 科目タグ作成（管理用）
 
-### 過去問
+### 参考資料
 
-- `GET /api/past-exams` - 過去問一覧取得（`subject_tag_id` クエリで科目フィルタ）
-- `POST /api/past-exams` - 過去問をアップロード（要ログイン / `multipart/form-data` で `subject_tag_id`, `file`, `title` 任意）
+- `GET /api/past-exams` - 参考資料一覧取得（`subject_tag_id` クエリで科目フィルタ）
+- `POST /api/past-exams` - 参考資料をアップロード（要ログイン / `multipart/form-data` で `subject_tag_id`, `file`, `title` 任意）
 
 ### 管理者
 

@@ -6,15 +6,26 @@ import { fetchThreads, fetchSubjectTags } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
 import type { Thread, SubjectTag } from '@/types';
 import { useRequireAuth } from '@/lib/auth-context';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useToast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
+import { PageHeader } from '@/components/ui/page-header';
+import { LoadingIndicator } from '@/components/ui/loading-indicator';
 
 export default function Home() {
   const [threads, setThreads] = useState<Thread[]>([]);
   const [tags, setTags] = useState<SubjectTag[]>([]);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<'open' | 'resolved' | ''>('');
-  const [tagFilter, setTagFilter] = useState<number | ''>('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'resolved'>('all');
+  const [tagFilter, setTagFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState('created_at');
+  const [error, setError] = useState('');
   const { isAuthenticated, loading: authLoading } = useRequireAuth();
+  const { toast } = useToast();
 
   const loadTags = useCallback(async () => {
     try {
@@ -28,19 +39,26 @@ export default function Home() {
   const loadThreads = useCallback(async () => {
     try {
       setLoading(true);
+      setError('');
       const data = await fetchThreads({
-        status: statusFilter || undefined,
-        subject_tag_id: tagFilter || undefined,
+        status: statusFilter === 'all' ? undefined : statusFilter,
+        subject_tag_id: tagFilter === 'all' ? undefined : Number(tagFilter),
         sort: sortBy,
         order: 'desc',
       });
       setThreads(data);
     } catch (error) {
       console.error('Failed to load threads:', error);
+      setError('スレッドの取得に失敗しました');
+      toast({
+        variant: 'destructive',
+        title: '読み込みに失敗しました',
+        description: '時間をおいて再度お試しください。',
+      });
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, tagFilter, sortBy]);
+  }, [statusFilter, tagFilter, sortBy, toast]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -55,9 +73,7 @@ export default function Home() {
   if (authLoading) {
     return (
       <main className="container mx-auto px-4 py-12">
-        <div className="flex justify-center">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
-        </div>
+        <LoadingIndicator />
       </main>
     );
   }
@@ -67,113 +83,134 @@ export default function Home() {
   }
 
   return (
-    <main className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-6">質問一覧</h1>
-
-        {/* フィルター */}
-        <div className="bg-white p-4 rounded-lg shadow-md mb-6 flex flex-wrap gap-4">
-          <div className="flex items-center gap-2">
-            <label className="font-medium text-sm">ステータス:</label>
-            <select
-              value={statusFilter}
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              onChange={(e) => setStatusFilter(e.target.value as any)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">すべて</option>
-              <option value="open">未解決</option>
-              <option value="resolved">解決済み</option>
-            </select>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <label className="font-medium text-sm">科目:</label>
-            <select
-              value={tagFilter}
-              onChange={(e) => setTagFilter(e.target.value ? parseInt(e.target.value) : '')}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">すべて</option>
-              {tags.map((tag) => (
-                <option key={tag.id} value={tag.id}>
-                  {tag.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <label className="font-medium text-sm">並び順:</label>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="created_at">投稿日時</option>
-              <option value="updated_at">更新日時</option>
-            </select>
-          </div>
-        </div>
-
-        {/* スレッド一覧 */}
-        {loading ? (
-          <div className="text-center py-12">
-            <div className="inline-block w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-          </div>
-        ) : threads.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-lg shadow-md">
-            <p className="text-gray-600 text-lg">質問がありません</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {threads.map((thread) => (
-              <div
-                key={thread.id}
-                className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition"
+    <main className="container mx-auto px-4 py-8 space-y-6">
+      <div className="flex flex-col gap-2">
+        <PageHeader
+          eyebrow="みんなの質問をチェック"
+          title="質問一覧"
+          action={
+            <Button asChild variant="outline" className="w-full sm:w-auto">
+              <Link href="/threads/new">質問を投稿する</Link>
+            </Button>
+          }
+        />
+        <Card className="shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">絞り込み</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+            <div className="space-y-2">
+              <Label>ステータス</Label>
+              <Select
+                value={statusFilter}
+                onValueChange={(value) => setStatusFilter(value as 'all' | 'open' | 'resolved')}
               >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-3 flex-wrap">
+                <SelectTrigger>
+                  <SelectValue placeholder="すべて" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">すべて</SelectItem>
+                  <SelectItem value="open">未解決</SelectItem>
+                  <SelectItem value="resolved">解決済み</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>科目</Label>
+              <Select value={tagFilter} onValueChange={(value) => setTagFilter(value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="すべて" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">すべて</SelectItem>
+                  {tags.map((tag) => (
+                    <SelectItem key={tag.id} value={String(tag.id)}>
+                      {tag.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>並び順</Label>
+              <Select value={sortBy} onValueChange={(value) => setSortBy(value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="投稿日時" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="created_at">投稿日時</SelectItem>
+                  <SelectItem value="updated_at">更新日時</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {error && (
+        <Alert variant="destructive">
+          <AlertTitle>エラー</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {loading ? (
+        <Card className="shadow-sm">
+          <CardContent className="flex items-center justify-center py-12">
+            <LoadingIndicator label="読み込み中です..." />
+          </CardContent>
+        </Card>
+      ) : threads.length === 0 ? (
+        <Card className="shadow-sm">
+          <CardContent className="py-12 text-center text-muted-foreground">
+            まだ質問がありません
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2">
+          {threads.map((thread) => (
+            <Card
+              key={thread.id}
+              className="shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
+            >
+              <CardContent className="space-y-3 pt-6">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant={thread.status === 'resolved' ? 'secondary' : 'default'}>
+                    {thread.status === 'resolved' ? '解決済み' : '未解決'}
+                  </Badge>
+                  {thread.subject_tag && (
+                    <Badge variant="outline">{thread.subject_tag.name}</Badge>
+                  )}
+                  {thread.deadline && (
+                    <Badge variant="destructive">締切 {formatDate(thread.deadline)}</Badge>
+                  )}
+                </div>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-2">
                     <Link
                       href={`/threads/${thread.id}`}
-                      className="text-xl font-semibold text-blue-600 hover:underline"
+                      className="text-xl font-semibold leading-tight hover:text-primary"
                     >
                       {thread.title}
                     </Link>
-                    <span
-                      className={`px-3 py-1 text-sm font-medium rounded-full ${
-                        thread.status === 'resolved'
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-blue-100 text-blue-800'
-                      }`}
-                    >
-                      {thread.status === 'resolved' ? '解決済み' : '未解決'}
-                    </span>
+                    <p className="line-clamp-2 text-muted-foreground">{thread.content}</p>
                   </div>
                 </div>
-
-                <p className="text-gray-700 mb-4 line-clamp-3">{thread.content}</p>
-
-                <div className="flex flex-wrap gap-4 text-sm text-gray-600">
-                  {thread.subject_tag && (
-                    <span className="px-3 py-1 bg-gray-100 rounded-full">
-                      {thread.subject_tag.name}
-                    </span>
-                  )}
+                <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                   <span>{thread.user?.display_name || thread.user?.email}</span>
-                  <span>{formatDate(thread.created_at)}</span>
-                  {thread.deadline && (
-                    <span className="text-red-600">
-                      締切: {formatDate(thread.deadline)}
-                    </span>
-                  )}
-                  <span>{thread.answers_count || 0}件の回答</span>
+                  <span>投稿: {formatDate(thread.created_at)}</span>
+                  <Badge variant="outline">{thread.answers_count || 0}件の回答</Badge>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+                <div className="flex justify-end">
+                  <Button asChild variant="outline" size="sm" className="w-full sm:w-auto">
+                    <Link href={`/threads/${thread.id}`}>詳細をみる</Link>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </main>
   );
 }

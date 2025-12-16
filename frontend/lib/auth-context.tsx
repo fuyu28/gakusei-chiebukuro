@@ -32,7 +32,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const response = await getCurrentUser();
       setUser(response.user);
     } catch (error) {
-      console.error('Failed to load user:', error);
+      const status = (error as { status?: number })?.status;
+      // 初回ロード時の 401 (無効トークン) は静かに未ログイン扱いにする
+      if (status !== 401) {
+        console.error('Failed to load user:', error);
+      }
       setUser(null);
     } finally {
       setLoading(false);

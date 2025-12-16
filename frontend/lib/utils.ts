@@ -1,3 +1,6 @@
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
 export function formatDate(isoDate: string): string {
   const date = new Date(isoDate);
   const now = new Date();
@@ -26,8 +29,8 @@ export function isMeijoEmail(email: string): boolean {
   return email.endsWith('@ccmailg.meijo-u.ac.jp');
 }
 
-export function cn(...classes: (string | boolean | undefined)[]): string {
-  return classes.filter(Boolean).join(' ');
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
 }
 
 export function formatFileSize(bytes?: number | null): string {
