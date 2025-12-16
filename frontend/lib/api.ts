@@ -84,7 +84,13 @@ async function apiFetch<T>(endpoint: string, options: RequestInit = {}): Promise
   })();
 
   if (!response.ok) {
-    throw new Error(errorMessage || 'API request failed');
+    // 401 応答時は無効なトークンを消して連続エラーを防ぐ
+    if (response.status === 401) {
+      clearAuthToken();
+    }
+    const error = new Error(errorMessage || 'API request failed') as Error & { status?: number };
+    error.status = response.status;
+    throw error;
   }
 
   return parsedBody as T;
