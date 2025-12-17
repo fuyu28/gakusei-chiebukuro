@@ -1,25 +1,18 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { claimDailyCoins, fetchCoinBalance, fetchCoinEvents } from '@/lib/api';
+import { useEffect, useMemo } from 'react';
 import { useRequireAuth } from '@/lib/auth-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { useToast } from '@/hooks/use-toast';
-import type { CoinBalance, CoinEvent } from '@/types';
 import { formatDate } from '@/lib/utils';
 import { LoadingIndicator } from '@/components/ui/loading-indicator';
+import { useCoinData } from '@/hooks/use-coin';
 
 export default function MePage() {
   const { isAuthenticated, loading: authLoading } = useRequireAuth();
-  const [balance, setBalance] = useState<CoinBalance | null>(null);
-  const [events, setEvents] = useState<CoinEvent[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [claiming, setClaiming] = useState(false);
-  const [error, setError] = useState('');
-  const { toast } = useToast();
+  const { balance, events, loading, error, refresh, claimDaily } = useCoinData();
 
   const isClaimedToday = useMemo(() => {
     if (!balance?.last_daily_claimed_at) return false;
@@ -30,55 +23,10 @@ export default function MePage() {
       && last.getDate() === now.getDate();
   }, [balance?.last_daily_claimed_at]);
 
-  const loadData = useCallback(async () => {
-    setError('');
-    try {
-      setLoading(true);
-      const [balanceRes, eventsRes] = await Promise.all([
-        fetchCoinBalance(),
-        fetchCoinEvents(20),
-      ]);
-      setBalance(balanceRes.balance);
-      setEvents(eventsRes.events);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'データの取得に失敗しました');
-      toast({
-        variant: 'destructive',
-        title: '読み込みに失敗しました',
-        description: err instanceof Error ? err.message : undefined,
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [toast]);
-
   useEffect(() => {
     if (!isAuthenticated) return;
-    void loadData();
-  }, [isAuthenticated, loadData]);
-
-  const handleClaimDaily = async () => {
-    setError('');
-    setClaiming(true);
-    try {
-      const { result } = await claimDailyCoins();
-      const message = result.awarded > 0
-        ? `デイリー配布で ${result.awarded} コインを受け取りました`
-        : '本日のデイリー配布は受け取り済みです';
-      toast({ description: message });
-      // 受取結果を反映するため再取得
-      void loadData();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'デイリー受取に失敗しました');
-      toast({
-        variant: 'destructive',
-        title: 'デイリー受取に失敗しました',
-        description: err instanceof Error ? err.message : undefined,
-      });
-    } finally {
-      setClaiming(false);
-    }
-  };
+    void refresh();
+  }, [isAuthenticated, refresh]);
 
   if (authLoading) {
     return (
@@ -107,7 +55,7 @@ export default function MePage() {
             <CardTitle className="text-2xl">マイページ</CardTitle>
             <p className="text-sm text-muted-foreground">コイン残高の確認とデイリー受取ができます</p>
           </div>
-          <Button variant="outline" onClick={() => void loadData()} disabled={loading}>
+          <Button variant="outline" onClick={() => void refresh()} disabled={loading}>
             残高を更新
           </Button>
         </CardHeader>
@@ -126,8 +74,8 @@ export default function MePage() {
           </div>
           <div className="rounded-lg border p-4 flex flex-col gap-3">
             <div className="text-sm text-muted-foreground">デイリー配布</div>
-            <Button onClick={handleClaimDaily} disabled={claiming || isClaimedToday}>
-              {claiming ? '受取中...' : isClaimedToday ? '受取済' : 'デイリーを受け取る'}
+            <Button onClick={claimDaily} disabled={loading || isClaimedToday}>
+              {loading ? '処理中...' : isClaimedToday ? '受取済' : 'デイリーを受け取る'}
             </Button>
             <p className="text-xs text-muted-foreground">
               1日1回受け取れます。受け取り後は最新の残高で更新してください。
@@ -142,7 +90,7 @@ export default function MePage() {
             <CardTitle className="text-xl">コイン履歴</CardTitle>
             <p className="text-sm text-muted-foreground">直近20件を表示</p>
           </div>
-          <Button variant="outline" onClick={() => void loadData()} disabled={loading}>
+          <Button variant="outline" onClick={() => void refresh()} disabled={loading}>
             更新
           </Button>
         </CardHeader>

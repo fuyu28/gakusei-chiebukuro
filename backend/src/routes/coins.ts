@@ -1,6 +1,5 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { zValidator } from '@hono/zod-validator';
 import { authMiddleware } from '../middleware/auth';
 import { asyncHandler } from '../utils/errors';
 import { claimDailyBonus, getCoinBalance, listCoinEvents, listCoinRanking } from '../services/coins';
@@ -23,21 +22,33 @@ coins.post('/daily-claim', authMiddleware, asyncHandler(async (c) => {
 }));
 
 // 履歴取得
-coins.get('/events', authMiddleware, asyncHandler(async (c) => {
-  const user = c.get('user') as AuthUser;
-  const limitParam = parseInt(c.req.query('limit') || '30', 10);
-  const limit = Number.isNaN(limitParam) ? 30 : Math.min(Math.max(limitParam, 1), 100);
-  const events = await listCoinEvents(user.id, limit);
-  return c.json({ events });
-}));
+const eventsQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).optional(),
+});
+
+coins.get(
+  '/events',
+  authMiddleware,
+  asyncHandler(async (c) => {
+    const user = c.get('user') as AuthUser;
+    const { limit } = eventsQuerySchema.parse({ limit: c.req.query('limit') });
+    const events = await listCoinEvents(user.id, limit ?? 30);
+    return c.json({ events });
+  })
+);
 
 // ランキング
-coins.get('/ranking', zValidator('query', z.object({
+const rankingQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).optional(),
-})), asyncHandler(async (c) => {
-  const { limit } = c.req.valid('query');
-  const ranking = await listCoinRanking(limit);
-  return c.json({ ranking });
-}));
+});
+
+coins.get(
+  '/ranking',
+  asyncHandler(async (c) => {
+    const { limit } = rankingQuerySchema.parse({ limit: c.req.query('limit') });
+    const ranking = await listCoinRanking(limit);
+    return c.json({ ranking });
+  })
+);
 
 export default coins;

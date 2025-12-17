@@ -209,7 +209,8 @@ BEGIN
     RAISE EXCEPTION 'Insufficient coins' USING ERRCODE = 'P0001';
   END IF;
 
-  fee_from_percent := FLOOR(p_stake * settings.fee_percent / 100)::BIGINT;
+  -- 手数料は小数点切り上げで最低1枚（fee_percent > 0のとき）になるようにする
+  fee_from_percent := CEIL(p_stake * settings.fee_percent / 100.0)::BIGINT;
   fee_amount := GREATEST(fee_from_percent, settings.fee_fixed);
   IF fee_amount > p_stake THEN
     fee_amount := p_stake;
