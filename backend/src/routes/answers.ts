@@ -7,17 +7,16 @@ import { verifyOwnership } from '../utils/authorization';
 import { HTTP_STATUS, ERROR_MESSAGES } from '../constants/http';
 import { TABLES } from '../constants/database';
 import { AuthUser } from '../types';
-import { getThreadById, getThreadOwner, updateThreadStatus } from '../services/threads';
+import { getThreadById, getThreadOwner } from '../services/threads';
 import {
   listAnswersByThread,
   createAnswerRecord,
   getAnswerById,
-  clearBestAnswer,
-  setBestAnswer,
   deleteAnswerById,
   likeAnswer,
   unlikeAnswer,
 } from '../services/answers';
+import { rewardBestAnswer } from '../services/coins';
 
 const answers = new Hono();
 
@@ -65,7 +64,6 @@ answers.post('/', authMiddleware, zValidator('json', createAnswerSchema), asyncH
 answers.patch('/:id/best', authMiddleware, asyncHandler(async (c) => {
   const user = c.get('user') as AuthUser;
   const answer_id = parseInt(c.req.param('id'));
-  const token = c.get('auth_token') as string;
 
   // 回答の取得
   const answer = await getAnswerById(answer_id);
@@ -77,17 +75,19 @@ answers.patch('/:id/best', authMiddleware, asyncHandler(async (c) => {
     throw new AppError(ERROR_MESSAGES.ONLY_OWNER_CAN_SELECT_BEST, HTTP_STATUS.FORBIDDEN);
   }
 
-  // 既存のBAを解除
-  await clearBestAnswer(answer.thread_id);
+  const { reward, balance } = await rewardBestAnswer({
+    thread_id: answer.thread_id,
+    answer_id,
+    selector_user_id: user.id,
+  });
 
-  // 新しいBAを設定
-  const updatedAnswer = await setBestAnswer(answer_id);
-
-  // スレッドを解決済みに更新
-  await updateThreadStatus(answer.thread_id, 'resolved', token);
+  // 最新状態の回答を返す（is_best_answer 反映用）
+  const updatedAnswer = await getAnswerById(answer_id);
 
   return c.json({
     message: 'Best answer selected successfully',
+    reward,
+    my_balance: balance,
     answer: updatedAnswer,
   });
 }));

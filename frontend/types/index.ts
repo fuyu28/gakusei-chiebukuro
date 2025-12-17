@@ -20,6 +20,11 @@ export interface Thread {
   deadline?: string;
   created_at: string;
   updated_at: string;
+  coin_stake?: number;
+  coin_fee?: number;
+  coin_reward_amount?: number;
+  coin_reward_paid?: boolean;
+  coin_reward_paid_at?: string | null;
   user?: User;
   subject_tag?: SubjectTag;
   answers_count?: number;
@@ -115,4 +120,54 @@ export interface PastExamResponse {
   file?: PastExamFile;
   files?: PastExamFile[];
   message?: string;
+}
+
+export interface CoinBalance {
+  balance: number;
+  last_daily_claimed_at?: string | null;
+}
+
+export type CoinEventReason =
+  | 'signup_bonus'
+  | 'daily_bonus'
+  | 'question_spent'
+  | 'best_answer_reward'
+  | 'admin_adjust';
+
+export interface CoinEvent {
+  id: number;
+  user_id: string;
+  delta: number;
+  reason: CoinEventReason;
+  thread_id?: number | null;
+  answer_id?: number | null;
+  metadata?: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface CoinBalanceResponse {
+  balance: CoinBalance;
+}
+
+export interface CoinEventsResponse {
+  events: CoinEvent[];
+}
+
+export interface CoinRankingEntry {
+  user_id: string;
+  balance: number;
+  display_name?: string | null;
+  email?: string;
+}
+
+export interface CoinRankingResponse {
+  ranking: CoinRankingEntry[];
+}
+
+export interface DailyClaimResponse {
+  result: {
+    balance: number;
+    awarded: number;
+    already_claimed: boolean;
+  };
 }

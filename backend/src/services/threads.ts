@@ -3,6 +3,7 @@ import { TABLES } from '../constants/database';
 import { Thread, ThreadWithDetails } from '../types';
 import { AppError } from '../utils/errors';
 import { HTTP_STATUS } from '../constants/http';
+import { createThreadWithCoins } from './coins';
 
 type ThreadFilters = {
   status?: 'open' | 'resolved';
@@ -74,27 +75,17 @@ export async function createThreadRecord(params: {
   subject_tag_id: number;
   deadline?: string | null;
   user_id: string;
-  token: string;
+  coin_stake: number;
 }): Promise<Thread> {
-  const supabaseWithToken = createClientWithToken(params.token);
-
-  const { data, error } = await supabaseWithToken
-    .from(TABLES.THREADS)
-    .insert({
-      title: params.title,
-      content: params.content,
-      subject_tag_id: params.subject_tag_id,
-      deadline: params.deadline || null,
-      user_id: params.user_id,
-    })
-    .select()
-    .single();
-
-  if (error || !data) {
-    throw new AppError(error?.message || 'Failed to create thread', HTTP_STATUS.BAD_REQUEST);
-  }
-
-  return data as Thread;
+  // スレッド作成時にコイン消費をまとめて行う
+  return createThreadWithCoins({
+    title: params.title,
+    content: params.content,
+    subject_tag_id: params.subject_tag_id,
+    deadline: params.deadline || null,
+    user_id: params.user_id,
+    coin_stake: params.coin_stake,
+  });
 }
 
 export async function updateThreadById(id: number, updates: Partial<Thread>, token: string): Promise<Thread> {

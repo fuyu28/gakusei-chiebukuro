@@ -101,8 +101,12 @@ export default function ThreadDetailPage() {
     }
 
     try {
-      await selectBestAnswer(answerId);
-      toast({ description: 'ベストアンサーを選択しました' });
+      const result = await selectBestAnswer(answerId);
+      toast({
+        description: result?.reward
+          ? `ベストアンサーを選択しました（${result.reward} コイン付与）`
+          : 'ベストアンサーを選択しました',
+      });
       await loadData();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'ベストアンサーの選択に失敗しました');
@@ -173,6 +177,15 @@ export default function ThreadDetailPage() {
   };
 
   const handleResolveThread = async () => {
+    if (stake > 0 && !thread?.coin_reward_paid) {
+      toast({
+        variant: 'destructive',
+        title: 'ベストアンサーを選択してください',
+        description: 'コインが賭けられているため、ベストアンサーを選んで報酬を配分してください。',
+      });
+      return;
+    }
+
     if (!confirm('このスレッドを解決済みにしますか？')) {
       return;
     }
@@ -232,6 +245,11 @@ export default function ThreadDetailPage() {
     thread.status === 'open' &&
     (!thread.deadline || new Date(thread.deadline) > new Date());
   const deadlinePassed = thread.deadline && new Date(thread.deadline) <= new Date();
+  const stake = Number(thread.coin_stake ?? 0);
+  const fee = Number(thread.coin_fee ?? 0);
+  const reward = Number.isNaN(Number(thread.coin_reward_amount))
+    ? Math.max(stake - fee, 0)
+    : Number(thread.coin_reward_amount ?? 0);
 
   const userInitial = (thread.user?.display_name || thread.user?.email || '?')
     .slice(0, 1)
@@ -248,15 +266,16 @@ export default function ThreadDetailPage() {
 
       <Card className="shadow-sm">
         <CardHeader className="gap-4 md:flex md:flex-row md:items-start md:justify-between">
-          <div className="space-y-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant={thread.status === 'resolved' ? 'secondary' : 'default'}>
-                {thread.status === 'resolved' ? '解決済み' : '未解決'}
-              </Badge>
-              {thread.subject_tag && <Badge variant="outline">{thread.subject_tag.name}</Badge>}
-              {thread.deadline && (
-                <Badge variant="destructive">締切 {formatDate(thread.deadline)}</Badge>
-              )}
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant={thread.status === 'resolved' ? 'secondary' : 'default'}>
+                  {thread.status === 'resolved' ? '解決済み' : '未解決'}
+                </Badge>
+                {thread.subject_tag && <Badge variant="outline">{thread.subject_tag.name}</Badge>}
+                {thread.deadline && (
+                  <Badge variant="destructive">締切 {formatDate(thread.deadline)}</Badge>
+                )}
+              {stake > 0 && <Badge variant="outline">報酬 {reward} 枚</Badge>}
             </div>
             <CardTitle className="text-3xl leading-tight">{thread.title}</CardTitle>
             <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">

@@ -21,6 +21,7 @@ export default function NewThreadPage() {
   const [subjectTagId, setSubjectTagId] = useState<string | undefined>(undefined);
   const [deadline, setDeadline] = useState('');
   const [tags, setTags] = useState<SubjectTag[]>([]);
+  const [coinStake, setCoinStake] = useState('5');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -63,6 +64,12 @@ export default function NewThreadPage() {
       return;
     }
 
+    const stakeValue = Number(coinStake);
+    if (Number.isNaN(stakeValue) || stakeValue <= 0) {
+      setError('使用するコイン数を入力してください');
+      return;
+    }
+
     try {
       setLoading(true);
       const deadlineISO = deadline ? new Date(deadline).toISOString() : undefined;
@@ -72,6 +79,7 @@ export default function NewThreadPage() {
         content,
         subject_tag_id: Number(subjectTagId),
         deadline: deadlineISO,
+        coin_stake: stakeValue,
       });
 
       toast({ description: '質問を投稿しました' });
@@ -158,6 +166,27 @@ export default function NewThreadPage() {
               />
               <p className="text-xs text-muted-foreground">
                 締切を設定すると、その日時以降は回答できなくなります
+              </p>
+            </div>
+
+            <div className="space-y-3 rounded-lg border p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <Label htmlFor="coinStake" className="font-semibold">
+                  質問に賭けるコイン <span className="text-destructive">*</span>
+                </Label>
+              </div>
+              <Input
+                type="number"
+                id="coinStake"
+                min={1}
+                step={1}
+                value={coinStake}
+                onChange={(e) => setCoinStake(e.target.value)}
+                placeholder="例: 5"
+                required
+              />
+              <p className="text-xs text-muted-foreground">
+                投稿には最低1枚が必要です。多く賭けると注目度が上がり、ベストアンサーには賭け額から手数料を引いた報酬が渡ります。
               </p>
             </div>
 
