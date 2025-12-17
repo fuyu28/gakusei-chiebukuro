@@ -48,6 +48,9 @@ export default function Header() {
                 <Button variant="ghost" asChild>
                   <Link href="/past-exams">参考資料</Link>
                 </Button>
+                <Button variant="ghost" asChild>
+                  <Link href="/me">マイページ</Link>
+                </Button>
               </>
             )}
             {isAuthenticated && user?.is_admin && (
@@ -86,6 +89,9 @@ export default function Header() {
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href="/past-exams">参考資料</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/me">マイページ</Link>
                 </DropdownMenuItem>
                 {user?.is_admin && (
                   <DropdownMenuItem asChild>
