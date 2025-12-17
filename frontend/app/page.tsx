@@ -181,6 +181,9 @@ export default function Home() {
                   {thread.subject_tag && (
                     <Badge variant="outline">{thread.subject_tag.name}</Badge>
                   )}
+                  {typeof thread.coin_reward_amount === 'number' && thread.coin_reward_amount > 0 && (
+                    <Badge variant="outline">報酬 {thread.coin_reward_amount} 枚</Badge>
+                  )}
                   {thread.deadline && (
                     <Badge variant="destructive">締切 {formatDate(thread.deadline)}</Badge>
                   )}

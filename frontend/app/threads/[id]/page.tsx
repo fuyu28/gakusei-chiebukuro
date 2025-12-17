@@ -266,23 +266,16 @@ export default function ThreadDetailPage() {
 
       <Card className="shadow-sm">
         <CardHeader className="gap-4 md:flex md:flex-row md:items-start md:justify-between">
-          <div className="space-y-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant={thread.status === 'resolved' ? 'secondary' : 'default'}>
-                {thread.status === 'resolved' ? '解決済み' : '未解決'}
-              </Badge>
-              {thread.subject_tag && <Badge variant="outline">{thread.subject_tag.name}</Badge>}
-              {thread.deadline && (
-                <Badge variant="destructive">締切 {formatDate(thread.deadline)}</Badge>
-              )}
-              {stake > 0 && (
-                <>
-                  <Badge variant="outline">賭けコイン {stake} 枚</Badge>
-                  <Badge variant="outline">報酬 {reward} 枚</Badge>
-                  {fee ? <Badge variant="outline">手数料 {fee} 枚</Badge> : null}
-                  {thread.coin_reward_paid && <Badge variant="secondary">報酬支払い済み</Badge>}
-                </>
-              )}
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant={thread.status === 'resolved' ? 'secondary' : 'default'}>
+                  {thread.status === 'resolved' ? '解決済み' : '未解決'}
+                </Badge>
+                {thread.subject_tag && <Badge variant="outline">{thread.subject_tag.name}</Badge>}
+                {thread.deadline && (
+                  <Badge variant="destructive">締切 {formatDate(thread.deadline)}</Badge>
+                )}
+              {stake > 0 && <Badge variant="outline">報酬 {reward} 枚</Badge>}
             </div>
             <CardTitle className="text-3xl leading-tight">{thread.title}</CardTitle>
             <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
