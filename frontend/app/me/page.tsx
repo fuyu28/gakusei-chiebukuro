@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { claimDailyCoins, fetchCoinBalance, fetchCoinEvents } from '@/lib/api';
 import { useRequireAuth } from '@/lib/auth-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,6 +20,15 @@ export default function MePage() {
   const [claiming, setClaiming] = useState(false);
   const [error, setError] = useState('');
   const { toast } = useToast();
+
+  const isClaimedToday = useMemo(() => {
+    if (!balance?.last_daily_claimed_at) return false;
+    const last = new Date(balance.last_daily_claimed_at);
+    const now = new Date();
+    return last.getFullYear() === now.getFullYear()
+      && last.getMonth() === now.getMonth()
+      && last.getDate() === now.getDate();
+  }, [balance?.last_daily_claimed_at]);
 
   const loadData = useCallback(async () => {
     setError('');
@@ -117,8 +126,8 @@ export default function MePage() {
           </div>
           <div className="rounded-lg border p-4 flex flex-col gap-3">
             <div className="text-sm text-muted-foreground">デイリー配布</div>
-            <Button onClick={handleClaimDaily} disabled={claiming}>
-              {claiming ? '受取中...' : 'デイリーを受け取る'}
+            <Button onClick={handleClaimDaily} disabled={claiming || isClaimedToday}>
+              {claiming ? '受取中...' : isClaimedToday ? '受取済' : 'デイリーを受け取る'}
             </Button>
             <p className="text-xs text-muted-foreground">
               1日1回受け取れます。受け取り後は最新の残高で更新してください。
