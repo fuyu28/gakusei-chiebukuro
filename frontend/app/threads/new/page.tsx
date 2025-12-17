@@ -2,7 +2,7 @@
 
 import { useState, FormEvent, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { createThread, fetchSubjectTags } from '@/lib/api';
+import { claimDailyCoins, createThread, fetchCoinBalance, fetchSubjectTags } from '@/lib/api';
 import type { SubjectTag } from '@/types';
 import { useRequireAuth } from '@/lib/auth-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,6 +21,9 @@ export default function NewThreadPage() {
   const [subjectTagId, setSubjectTagId] = useState<string | undefined>(undefined);
   const [deadline, setDeadline] = useState('');
   const [tags, setTags] = useState<SubjectTag[]>([]);
+  const [coinStake, setCoinStake] = useState('5');
+  const [coinBalance, setCoinBalance] = useState<number | null>(null);
+  const [claiming, setClaiming] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -36,11 +39,21 @@ export default function NewThreadPage() {
     }
   }, []);
 
+  const loadBalance = useCallback(async () => {
+    try {
+      const { balance } = await fetchCoinBalance();
+      setCoinBalance(balance.balance);
+    } catch (error) {
+      console.error('Failed to load coin balance:', error);
+    }
+  }, []);
+
   useEffect(() => {
     if (isAuthenticated) {
       loadTags();
+      loadBalance();
     }
-  }, [isAuthenticated, loadTags]);
+  }, [isAuthenticated, loadTags, loadBalance]);
 
   if (authLoading) {
     return (
@@ -63,6 +76,12 @@ export default function NewThreadPage() {
       return;
     }
 
+    const stakeValue = Number(coinStake);
+    if (Number.isNaN(stakeValue) || stakeValue <= 0) {
+      setError('使用するコイン数を入力してください');
+      return;
+    }
+
     try {
       setLoading(true);
       const deadlineISO = deadline ? new Date(deadline).toISOString() : undefined;
@@ -72,7 +91,12 @@ export default function NewThreadPage() {
         content,
         subject_tag_id: Number(subjectTagId),
         deadline: deadlineISO,
+        coin_stake: stakeValue,
       });
+
+      if (coinBalance !== null) {
+        setCoinBalance((prev) => (typeof prev === 'number' ? Math.max(prev - stakeValue, 0) : prev));
+      }
 
       toast({ description: '質問を投稿しました' });
       router.push(`/threads/${thread.id}`);
@@ -85,6 +109,28 @@ export default function NewThreadPage() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleClaimDaily = async () => {
+    setError('');
+    try {
+      setClaiming(true);
+      const { result } = await claimDailyCoins();
+      setCoinBalance(result.balance);
+      const message = result.awarded > 0
+        ? `デイリー配布で ${result.awarded} コイン受け取りました`
+        : '本日のデイリー配布は受け取り済みです';
+      toast({ description: message });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'デイリー配布の取得に失敗しました');
+      toast({
+        variant: 'destructive',
+        title: 'デイリー配布の取得に失敗しました',
+        description: err instanceof Error ? err.message : undefined,
+      });
+    } finally {
+      setClaiming(false);
     }
   };
 
@@ -159,6 +205,38 @@ export default function NewThreadPage() {
               <p className="text-xs text-muted-foreground">
                 締切を設定すると、その日時以降は回答できなくなります
               </p>
+            </div>
+
+            <div className="space-y-3 rounded-lg border p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <Label htmlFor="coinStake" className="font-semibold">
+                  質問に賭けるコイン <span className="text-destructive">*</span>
+                </Label>
+                <div className="text-sm text-muted-foreground">
+                  所持コイン: {coinBalance !== null ? `${coinBalance} 枚` : '取得中...'}
+                </div>
+              </div>
+              <Input
+                type="number"
+                id="coinStake"
+                min={1}
+                step={1}
+                value={coinStake}
+                onChange={(e) => setCoinStake(e.target.value)}
+                placeholder="例: 5"
+                required
+              />
+              <p className="text-xs text-muted-foreground">
+                投稿には最低1枚が必要です。多く賭けると注目度が上がり、ベストアンサーには賭け額から手数料を引いた報酬が渡ります。
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button type="button" size="sm" variant="outline" onClick={loadBalance}>
+                  残高を更新
+                </Button>
+                <Button type="button" size="sm" onClick={handleClaimDaily} disabled={claiming}>
+                  {claiming ? '受取中...' : 'デイリー配布を受け取る'}
+                </Button>
+              </div>
             </div>
 
             <div className="flex flex-col gap-3 sm:flex-row">

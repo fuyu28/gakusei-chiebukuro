@@ -14,6 +14,10 @@ import type {
   PastExamListResponse,
   PastExamResponse,
   PastExamFile,
+  CoinBalanceResponse,
+  CoinEventsResponse,
+  CoinRankingResponse,
+  DailyClaimResponse,
 } from '@/types';
 
 const RAW_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000';
@@ -154,6 +158,7 @@ export const createThread = async (threadData: {
   content: string;
   subject_tag_id: number;
   deadline?: string;
+  coin_stake: number;
 }): Promise<Thread> => {
   const data = await apiFetch<ThreadResponse>('/threads', {
     method: 'POST',
@@ -188,8 +193,9 @@ export const createAnswer = async (threadId: number, content: string): Promise<A
   return data.answer;
 };
 
-export const selectBestAnswer = async (answerId: number): Promise<void> => {
-  await apiFetch(`/answers/${answerId}/best`, { method: 'PATCH' });
+export const selectBestAnswer = async (answerId: number): Promise<{ reward?: number; my_balance?: number }> => {
+  const data = await apiFetch<{ reward?: number; my_balance?: number }>(`/answers/${answerId}/best`, { method: 'PATCH' });
+  return data;
 };
 
 export const deleteAnswer = async (answerId: number): Promise<void> => {
@@ -237,6 +243,25 @@ export const uploadPastExam = async (formData: FormData): Promise<PastExamFile[]
 
 export const deletePastExam = async (pastExamId: number): Promise<void> => {
   await apiFetch(`/past-exams/${pastExamId}`, { method: 'DELETE' });
+};
+
+// コインAPI
+export const fetchCoinBalance = async (): Promise<CoinBalanceResponse> => {
+  return apiFetch<CoinBalanceResponse>('/coins/balance');
+};
+
+export const claimDailyCoins = async (): Promise<DailyClaimResponse> => {
+  return apiFetch<DailyClaimResponse>('/coins/daily-claim', { method: 'POST' });
+};
+
+export const fetchCoinEvents = async (limit = 30): Promise<CoinEventsResponse> => {
+  const params = new URLSearchParams({ limit: String(limit) });
+  return apiFetch<CoinEventsResponse>(`/coins/events?${params.toString()}`);
+};
+
+export const fetchCoinRanking = async (limit = 20): Promise<CoinRankingResponse> => {
+  const params = new URLSearchParams({ limit: String(limit) });
+  return apiFetch<CoinRankingResponse>(`/coins/ranking?${params.toString()}`);
 };
 
 // 管理者API

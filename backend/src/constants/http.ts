@@ -40,4 +40,8 @@ export const ERROR_MESSAGES = {
   FAILED_TO_UPLOAD_FILE: 'Failed to upload file',
   FAILED_TO_GET_PAST_EXAMS: 'Failed to get past exam files',
   FAILED_TO_DELETE_PAST_EXAM: 'Failed to delete past exam',
+  INSUFFICIENT_COINS: 'Insufficient coins',
+  ALREADY_REWARDED: 'Reward already distributed',
+  INVALID_STAKE: 'Stake does not meet the required minimum',
+  DAILY_ALREADY_CLAIMED: 'Daily bonus already claimed',
 } as const;
