@@ -70,7 +70,7 @@ gakusei-chiebukuro/
 ## CI / CD
 
 - **CI (GitHub Actions)**: `.github/workflows/ci.yml` でPR時に実行。フロントエンドは Bun で lint/build、バックエンドは Bun で type-check/build を行い、Next.js キャッシュを活用して高速化。
-- **CD (Cloudflare Pages - フロントエンド)**: `frontend` の `wrangler.toml` を利用して Pages へデプロイ。`npm run cf:build` で `.vercel/output/static` を生成し、`npm run cf:deploy` で Pages へ反映。ビルド時に `NEXT_PUBLIC_API_BASE_URL` などの環境変数を Pages の Build 環境に設定する。
+- **CD (Cloudflare Workers - フロントエンド)**: OpenNext (`@opennextjs/cloudflare`) でビルドし、`wrangler` 経由で Workers へデプロイ。ビルド時に `NEXT_PUBLIC_API_BASE_URL` などの環境変数を設定する。
 - **CD (Cloudflare Workers - バックエンド)**: `backend/wrangler.toml` を利用し `wrangler deploy` で Workers にデプロイ。Supabase キーなどのシークレット/環境変数は Cloudflare ダッシュボードまたは `wrangler secret put` / `[vars]` で設定する。
 
 ## セットアップ
@@ -231,15 +231,16 @@ wrangler deploy
 
 `wrangler.toml` で Worker を管理。Supabaseキーなどの環境変数/シークレットは Cloudflare ダッシュボードまたは `wrangler secret put` / `[vars]` で設定してください。
 
-### フロントエンド（Cloudflare Pages）
+### フロントエンド（Cloudflare Workers / OpenNext）
 
 ```bash
 cd frontend
-# Pages向けビルドとデプロイ（scripts に cf:build / cf:deploy を用意）
-bun run cf:deploy   # または npm run cf:deploy
+# OpenNext向けビルドとデプロイ
+bun run opennext:build   # または npm run opennext:build
+bun run opennext:deploy  # または npm run opennext:deploy
 ```
 
-`frontend/wrangler.toml` を使って Pages にデプロイします。ビルド時に `NEXT_PUBLIC_API_BASE_URL` などの Build 環境変数を Cloudflare Pages 側に設定してください（設定が無いとクライアント側にlocalhostが埋め込まれます）。
+`frontend/wrangler.toml` を使って Workers にデプロイします。ビルド時に `NEXT_PUBLIC_API_BASE_URL` などの環境変数を Cloudflare 側に設定してください（設定が無いとクライアント側にlocalhostが埋め込まれます）。
 
 ## ライセンス
 
