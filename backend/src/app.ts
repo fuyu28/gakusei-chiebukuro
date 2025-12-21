@@ -10,6 +10,7 @@ import pastExamsRoutes from './routes/past-exams';
 import coinsRoutes from './routes/coins';
 import { initSupabase, getEnvVar } from './lib/supabase';
 import { createCsrfMiddleware } from './middleware/csrf';
+import { securityHeaders } from './middleware/security-headers';
 
 const app = new Hono();
 
@@ -53,6 +54,9 @@ app.use(
     credentials: true,
   })
 );
+
+// APIレスポンスのセキュリティヘッダ付与
+app.use('*', securityHeaders);
 
 // Cookie認証時のCSRF対策（Origin/Refererベース）
 app.use('*', createCsrfMiddleware(allowedDomains));
