@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useCallback, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { User } from '@/types';
-import { getCurrentUser, logout as apiLogout, isLoggedIn } from '@/lib/api';
+import { getCurrentUser, logout as apiLogout } from '@/lib/api';
 import { showGlobalSuccessToast } from '@/lib/toast-events';
 
 type AuthContextValue = {
@@ -21,12 +21,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const loadUser = useCallback(async () => {
-    if (!isLoggedIn()) {
-      setUser(null);
-      setLoading(false);
-      return;
-    }
-
     setLoading(true);
     try {
       const response = await getCurrentUser();

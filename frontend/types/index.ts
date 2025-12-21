@@ -75,8 +75,9 @@ export interface AdminUser {
 
 // API レスポンス型
 export interface AuthResponse {
-  access_token: string;
+  access_token?: string;
   user: User;
+  message?: string;
 }
 
 export interface ThreadsResponse {
