@@ -2,11 +2,12 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { authMiddleware } from '../middleware/auth';
-import { asyncHandler } from '../utils/errors';
+import { asyncHandler, AppError } from '../utils/errors';
 import { verifyOwnership } from '../utils/authorization';
 import { HTTP_STATUS } from '../constants/http';
 import { TABLES } from '../constants/database';
 import { AuthUser } from '../types';
+import { sanitizeUserText } from '../lib/sanitize';
 import {
   listThreads,
   getThreadById,
@@ -61,10 +62,16 @@ threads.get('/:id', asyncHandler(async (c) => {
 threads.post('/', authMiddleware, zValidator('json', createThreadSchema), asyncHandler(async (c: any) => {
   const user = c.get('user') as AuthUser;
   const { title, content, subject_tag_id, deadline, coin_stake } = c.req.valid('json');
+  const sanitizedTitle = sanitizeUserText(title);
+  const sanitizedContent = sanitizeUserText(content);
+
+  if (!sanitizedTitle || !sanitizedContent) {
+    throw new AppError('Title and content are required', HTTP_STATUS.BAD_REQUEST);
+  }
 
   const thread = await createThreadRecord({
-    title,
-    content,
+    title: sanitizedTitle,
+    content: sanitizedContent,
     subject_tag_id,
     deadline: deadline || null,
     user_id: user.id,

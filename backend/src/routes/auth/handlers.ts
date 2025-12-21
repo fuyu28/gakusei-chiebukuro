@@ -1,34 +1,31 @@
-import { Hono } from 'hono';
-import { zValidator } from '@hono/zod-validator';
-import { z } from 'zod';
-import { getSupabase, getEnvVar, isAllowedEmailDomain } from '../lib/supabase';
-import { authMiddleware } from '../middleware/auth';
-import { asyncHandler, AppError } from '../utils/errors';
-import { HTTP_STATUS } from '../constants/http';
-import { AuthUser } from '../types';
-import { ensureUserProfile } from '../services/profiles';
+import type { Context } from 'hono';
+import { deleteCookie, setCookie } from 'hono/cookie';
+import { getSupabase, isAllowedEmailDomain } from '../../lib/supabase';
+import { getAuthCookieName, getAuthCookieOptions } from '../../lib/auth-cookie';
+import { createCsrfToken, getCsrfCookieName, getCsrfCookieOptions } from '../../lib/csrf';
+import { getAuthConfig } from '../../config/auth';
+import { ensureUserProfile } from '../../services/profiles';
+import { AppError } from '../../utils/errors';
+import { HTTP_STATUS } from '../../constants/http';
+import type { AuthUser } from '../../types';
 
-const auth = new Hono();
+function setSessionCookies(c: Context, accessToken?: string | null, expiresIn?: number | null) {
+  if (!accessToken) return;
+  const maxAge = typeof expiresIn === 'number' ? expiresIn : undefined;
+  setCookie(c, getAuthCookieName(), accessToken, getAuthCookieOptions(maxAge));
+  setCookie(c, getCsrfCookieName(), createCsrfToken(), getCsrfCookieOptions());
+}
 
-// サインアップスキーマ
-const signupSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
-  display_name: z.string().optional(),
-});
+function clearSessionCookies(c: Context) {
+  deleteCookie(c, getAuthCookieName(), getAuthCookieOptions());
+  deleteCookie(c, getCsrfCookieName(), getCsrfCookieOptions());
+}
 
-// ログインスキーマ
-const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string(),
-});
-
-// サインアップ
-auth.post('/signup', zValidator('json', signupSchema), asyncHandler(async (c: any) => {
+export async function signupHandler(c: any) {
   const supabase = getSupabase();
   const { email, password, display_name } = c.req.valid('json');
+  const { requireEmailVerification, emailRedirectTo } = getAuthConfig();
 
-  // メールドメインチェック
   if (!isAllowedEmailDomain(email)) {
     throw new AppError(
       'Only @ccmailg.meijo-u.ac.jp email addresses are allowed',
@@ -36,13 +33,11 @@ auth.post('/signup', zValidator('json', signupSchema), asyncHandler(async (c: an
     );
   }
 
-  const requireEmailVerification = getEnvVar('REQUIRE_EMAIL_VERIFICATION') !== 'false';
-
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      emailRedirectTo: getEnvVar('EMAIL_REDIRECT_TO') || undefined,
+      emailRedirectTo: emailRedirectTo || undefined,
       data: {
         display_name: display_name || (email as string).split('@')[0],
       },
@@ -63,6 +58,10 @@ auth.post('/signup', zValidator('json', signupSchema), asyncHandler(async (c: an
     displayName: display_name || (email as string).split('@')[0],
   });
 
+  if (!requireEmailVerification) {
+    setSessionCookies(c, data.session?.access_token, data.session?.expires_in);
+  }
+
   return c.json({
     message: requireEmailVerification
       ? 'User created successfully. Please check your email to confirm.'
@@ -72,12 +71,12 @@ auth.post('/signup', zValidator('json', signupSchema), asyncHandler(async (c: an
       email: data.user.email,
     },
   });
-}));
+}
 
-// ログイン
-auth.post('/login', zValidator('json', loginSchema), asyncHandler(async (c: any) => {
+export async function loginHandler(c: any) {
   const supabase = getSupabase();
   const { email, password } = c.req.valid('json');
+  const { requireEmailVerification, returnAccessToken } = getAuthConfig();
 
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
@@ -88,30 +87,41 @@ auth.post('/login', zValidator('json', loginSchema), asyncHandler(async (c: any)
     throw new AppError(error.message, HTTP_STATUS.UNAUTHORIZED);
   }
 
-  return c.json({
+  if (requireEmailVerification && !data.user?.email_confirmed_at) {
+    throw new AppError('Email address is not verified', HTTP_STATUS.FORBIDDEN);
+  }
+
+  setSessionCookies(c, data.session?.access_token, data.session?.expires_in);
+
+  const response: Record<string, unknown> = {
     message: 'Login successful',
-    access_token: data.session?.access_token,
     user: {
       id: data.user?.id,
       email: data.user?.email,
     },
-  });
-}));
+  };
 
-// ログアウト
-auth.post('/logout', authMiddleware, asyncHandler(async (c) => {
+  if (returnAccessToken) {
+    response.access_token = data.session?.access_token;
+  }
+
+  return c.json(response);
+}
+
+export async function logoutHandler(c: Context) {
   const supabase = getSupabase();
   const { error } = await supabase.auth.signOut();
+
+  clearSessionCookies(c);
 
   if (error) {
     throw new AppError(error.message, HTTP_STATUS.BAD_REQUEST);
   }
 
   return c.json({ message: 'Logout successful' });
-}));
+}
 
-// 現在のユーザー情報取得
-auth.get('/me', authMiddleware, asyncHandler(async (c) => {
+export async function meHandler(c: Context) {
   const user = c.get('user') as AuthUser;
 
   const profile = await ensureUserProfile({
@@ -130,6 +140,4 @@ auth.get('/me', authMiddleware, asyncHandler(async (c) => {
       total_likes: profile?.total_likes || 0,
     },
   });
-}));
-
-export default auth;
+}

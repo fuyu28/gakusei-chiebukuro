@@ -1,11 +1,9 @@
 import type {
-  AuthResponse,
   ThreadsResponse,
   ThreadResponse,
   AnswersResponse,
   AnswerResponse,
   TagsResponse,
-  UserResponse,
   Thread,
   Answer,
   AdminUsersResponse,
@@ -20,115 +18,8 @@ import type {
   DailyClaimResponse,
 } from '@/types';
 
-const RAW_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000';
-const NORMALIZED_API_BASE_URL = RAW_API_BASE_URL.replace(/\/$/, '');
-// ベースURLに /api が付いていなければ付与する（重複を避けるための簡易ガード）
-const API_BASE_URL = NORMALIZED_API_BASE_URL.endsWith('/api')
-  ? NORMALIZED_API_BASE_URL
-  : `${NORMALIZED_API_BASE_URL}/api`;
-
-// トークン管理
-export const getAuthToken = (): string | null => {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem('auth_token');
-};
-
-export const setAuthToken = (token: string): void => {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem('auth_token', token);
-};
-
-export const clearAuthToken = (): void => {
-  if (typeof window === 'undefined') return;
-  localStorage.removeItem('auth_token');
-};
-
-export const isLoggedIn = (): boolean => {
-  return !!getAuthToken();
-};
-
-// 共通fetchヘルパー
-async function apiFetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  const token = getAuthToken();
-
-  const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
-
-  const headers = new Headers(options.headers ?? {});
-  if (!isFormData && !headers.has('Content-Type')) {
-    headers.set('Content-Type', 'application/json');
-  }
-
-  if (token) {
-    headers.set('Authorization', `Bearer ${token}`);
-  }
-
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    ...options,
-    headers,
-  });
-
-  const responseText = await response.text();
-  let parsedBody: unknown = {};
-
-  if (responseText) {
-    try {
-      parsedBody = JSON.parse(responseText);
-    } catch (error) {
-      console.error('Failed to parse response body', error);
-      parsedBody = { message: responseText };
-    }
-  }
-
-  const errorMessage = (() => {
-    if (typeof parsedBody === 'object' && parsedBody !== null) {
-      const body = parsedBody as { error?: string; message?: string };
-      return body.error || body.message;
-    }
-    return undefined;
-  })();
-
-  if (!response.ok) {
-    // 401 応答時は無効なトークンを消して連続エラーを防ぐ
-    if (response.status === 401) {
-      clearAuthToken();
-    }
-    const error = new Error(errorMessage || 'API request failed') as Error & { status?: number };
-    error.status = response.status;
-    throw error;
-  }
-
-  return parsedBody as T;
-}
-
-// 認証API
-export const signup = async (email: string, password: string, displayName?: string): Promise<AuthResponse> => {
-  return apiFetch<AuthResponse>('/auth/signup', {
-    method: 'POST',
-    body: JSON.stringify({ email, password, display_name: displayName }),
-  });
-};
-
-export const login = async (email: string, password: string): Promise<AuthResponse> => {
-  const data = await apiFetch<AuthResponse>('/auth/login', {
-    method: 'POST',
-    body: JSON.stringify({ email, password }),
-  });
-
-  if (data.access_token) {
-    setAuthToken(data.access_token);
-  }
-
-  return data;
-};
-
-export const logout = async (): Promise<void> => {
-  await apiFetch('/auth/logout', { method: 'POST' });
-  clearAuthToken();
-};
-
-export const getCurrentUser = async (): Promise<UserResponse> => {
-  return apiFetch<UserResponse>('/auth/me');
-};
+import { apiFetch } from '@/lib/api-client';
+export { signup, login, logout, getCurrentUser } from '@/lib/auth-api';
 
 // スレッドAPI
 export const fetchThreads = async (filters?: {

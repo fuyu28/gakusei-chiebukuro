@@ -7,6 +7,7 @@ import { verifyOwnership } from '../utils/authorization';
 import { HTTP_STATUS, ERROR_MESSAGES } from '../constants/http';
 import { TABLES } from '../constants/database';
 import { AuthUser } from '../types';
+import { sanitizeUserText } from '../lib/sanitize';
 import { getThreadById, getThreadOwner } from '../services/threads';
 import {
   listAnswersByThread,
@@ -40,6 +41,11 @@ answers.post('/', authMiddleware, zValidator('json', createAnswerSchema), asyncH
   const user = c.get('user') as AuthUser;
   const token = c.get('auth_token') as string;
   const { thread_id, content } = c.req.valid('json');
+  const sanitizedContent = sanitizeUserText(content);
+
+  if (!sanitizedContent) {
+    throw new AppError('Content is required', HTTP_STATUS.BAD_REQUEST);
+  }
 
   // スレッドの存在確認と締切チェック
   const thread = await getThreadById(thread_id);
@@ -55,7 +61,12 @@ answers.post('/', authMiddleware, zValidator('json', createAnswerSchema), asyncH
   }
 
   // 回答を投稿
-  const answer = await createAnswerRecord({ thread_id, content, user_id: user.id, token });
+  const answer = await createAnswerRecord({
+    thread_id,
+    content: sanitizedContent,
+    user_id: user.id,
+    token,
+  });
 
   return c.json({ message: 'Answer created successfully', answer }, HTTP_STATUS.CREATED as any);
 }));

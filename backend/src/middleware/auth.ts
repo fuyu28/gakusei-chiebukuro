@@ -4,15 +4,15 @@ import { HTTP_STATUS } from '../constants/http';
 import { isAdminFlag } from '../utils/admin';
 import { AuthUser } from '../types';
 import { ensureUserProfile } from '../services/profiles';
+import { getAuthToken } from '../lib/auth-token';
 
 export async function authMiddleware(c: Context, next: Next) {
-  const authHeader = c.req.header('Authorization');
+  const token = getAuthToken(c);
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  if (!token) {
     return c.json({ error: 'Unauthorized' }, 401);
   }
 
-  const token = authHeader.substring(7);
   c.set('auth_token', token);
 
   try {
@@ -48,14 +48,13 @@ export async function authMiddleware(c: Context, next: Next) {
 }
 
 export async function optionalAuthMiddleware(c: Context, next: Next) {
-  const authHeader = c.req.header('Authorization');
+  const token = getAuthToken(c);
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  if (!token) {
     await next();
     return;
   }
 
-  const token = authHeader.substring(7);
   c.set('auth_token', token);
 
   try {
