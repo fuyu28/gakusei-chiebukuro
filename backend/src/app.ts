@@ -61,7 +61,7 @@ app.use(
 app.use('*', securityHeaders);
 
 // Cookie認証時のCSRF対策（Origin/Refererベース）
-app.use('*', createCsrfMiddleware(allowedDomains));
+app.use('*', (c, next) => createCsrfMiddleware(getAllowedOrigins())(c, next));
 
 // ヘルスチェック
 app.get('/', (c) => {
