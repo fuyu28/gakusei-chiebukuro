@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { deleteCookie, setCookie } from 'hono/cookie';
 import { getSupabase, getEnvVar, isAllowedEmailDomain } from '../lib/supabase';
 import { getAuthCookieName, getAuthCookieOptions } from '../lib/auth-cookie';
+import { createCsrfToken, getCsrfCookieName, getCsrfCookieOptions } from '../lib/csrf';
 import { createRateLimitMiddleware } from '../middleware/rate-limit';
 import { authMiddleware } from '../middleware/auth';
 import { asyncHandler, AppError } from '../utils/errors';
@@ -69,6 +70,7 @@ auth.post('/signup', authRateLimit, zValidator('json', signupSchema), asyncHandl
 
   if (!requireEmailVerification && data.session?.access_token) {
     setCookie(c, getAuthCookieName(), data.session.access_token, getAuthCookieOptions(data.session.expires_in));
+    setCookie(c, getCsrfCookieName(), createCsrfToken(), getCsrfCookieOptions());
   }
 
   return c.json({
@@ -103,6 +105,7 @@ auth.post('/login', authRateLimit, zValidator('json', loginSchema), asyncHandler
 
   if (data.session?.access_token) {
     setCookie(c, getAuthCookieName(), data.session.access_token, getAuthCookieOptions(data.session.expires_in));
+    setCookie(c, getCsrfCookieName(), createCsrfToken(), getCsrfCookieOptions());
   }
 
   const returnAccessToken = getEnvVar('RETURN_ACCESS_TOKEN') === 'true';
@@ -127,6 +130,7 @@ auth.post('/logout', authMiddleware, asyncHandler(async (c) => {
   const { error } = await supabase.auth.signOut();
 
   deleteCookie(c, getAuthCookieName(), getAuthCookieOptions());
+  deleteCookie(c, getCsrfCookieName(), getCsrfCookieOptions());
 
   if (error) {
     throw new AppError(error.message, HTTP_STATUS.BAD_REQUEST);

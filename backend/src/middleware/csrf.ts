@@ -1,5 +1,6 @@
 import { Context, Next } from 'hono';
 import { HTTP_STATUS } from '../constants/http';
+import { getCsrfCookieName, getCsrfHeaderName } from '../lib/csrf';
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
@@ -26,6 +27,12 @@ export function createCsrfMiddleware(allowedOrigins: string[]) {
     if (!hasCookie || hasBearer) {
       await next();
       return;
+    }
+
+    const csrfHeader = c.req.header(getCsrfHeaderName());
+    const csrfCookie = c.req.cookie(getCsrfCookieName());
+    if (!csrfHeader || !csrfCookie || csrfHeader !== csrfCookie) {
+      return c.json({ error: 'CSRF token mismatch' }, HTTP_STATUS.FORBIDDEN);
     }
 
     const origin = c.req.header('Origin');
