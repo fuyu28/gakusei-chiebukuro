@@ -1,18 +1,13 @@
 import { Context, Next } from 'hono';
-import { getCookie } from 'hono/cookie';
 import { getSupabase } from '../lib/supabase';
-import { getAuthCookieName } from '../lib/auth-cookie';
 import { HTTP_STATUS } from '../constants/http';
 import { isAdminFlag } from '../utils/admin';
 import { AuthUser } from '../types';
 import { ensureUserProfile } from '../services/profiles';
+import { getAuthToken } from '../lib/auth-token';
 
 export async function authMiddleware(c: Context, next: Next) {
-  const authHeader = c.req.header('Authorization');
-
-  const headerToken = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : undefined;
-  const cookieToken = getCookie(c, getAuthCookieName());
-  const token = headerToken || cookieToken;
+  const token = getAuthToken(c);
 
   if (!token) {
     return c.json({ error: 'Unauthorized' }, 401);
@@ -53,11 +48,7 @@ export async function authMiddleware(c: Context, next: Next) {
 }
 
 export async function optionalAuthMiddleware(c: Context, next: Next) {
-  const authHeader = c.req.header('Authorization');
-
-  const headerToken = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : undefined;
-  const cookieToken = getCookie(c, getAuthCookieName());
-  const token = headerToken || cookieToken;
+  const token = getAuthToken(c);
 
   if (!token) {
     await next();

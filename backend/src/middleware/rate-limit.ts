@@ -1,7 +1,5 @@
 import { Context, Next } from 'hono';
 import { HTTP_STATUS } from '../constants/http';
-import { getEnvVar } from '../lib/supabase';
-
 type RateLimitOptions = {
   windowMs: number;
   max: number;
@@ -14,6 +12,8 @@ type RateEntry = {
 };
 
 const store = new Map<string, RateEntry>();
+const DEFAULT_WINDOW_MS = 10 * 60 * 1000;
+const DEFAULT_MAX = 20;
 
 function getClientIp(c: Context): string {
   const cf = c.req.header('CF-Connecting-IP');
@@ -25,16 +25,9 @@ function getClientIp(c: Context): string {
   return 'unknown';
 }
 
-function getEnvNumber(key: string, fallback: number): number {
-  const value = getEnvVar(key);
-  if (!value) return fallback;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : fallback;
-}
-
 export function createRateLimitMiddleware(options?: Partial<RateLimitOptions>) {
-  const windowMs = options?.windowMs ?? getEnvNumber('AUTH_RATE_LIMIT_WINDOW_MS', 10 * 60 * 1000);
-  const max = options?.max ?? getEnvNumber('AUTH_RATE_LIMIT_MAX', 20);
+  const windowMs = options?.windowMs ?? DEFAULT_WINDOW_MS;
+  const max = options?.max ?? DEFAULT_MAX;
   const keyPrefix = options?.keyPrefix ?? 'auth';
 
   return async (c: Context, next: Next) => {
