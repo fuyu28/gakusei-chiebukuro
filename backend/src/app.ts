@@ -49,7 +49,7 @@ app.use(
       if (!origin) return null;
       return allowedDomains.includes(origin) ? origin : null;
     },
-    allowHeaders: ['Content-Type', 'Authorization'],
+    allowHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],
     allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: true,
   })
