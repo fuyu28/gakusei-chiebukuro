@@ -35,18 +35,20 @@ const defaultOrigins = [
   'http://localhost:8788', // wrangler pages dev
 ];
 
-const envOrigins = (getEnvVar('CORS_ALLOW_ORIGINS') || '')
-  .split(',')
-  .map((o) => o.trim())
-  .filter(Boolean);
-
-const allowedDomains = [...defaultOrigins, ...envOrigins];
+function getAllowedOrigins(): string[] {
+  const envOrigins = (getEnvVar('CORS_ALLOW_ORIGINS') || '')
+    .split(',')
+    .map((o) => o.trim())
+    .filter(Boolean);
+  return [...defaultOrigins, ...envOrigins];
+}
 
 app.use(
   '/*',
   cors({
     origin: (origin, _c) => {
       if (!origin) return null;
+      const allowedDomains = getAllowedOrigins();
       return allowedDomains.includes(origin) ? origin : null;
     },
     allowHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],
