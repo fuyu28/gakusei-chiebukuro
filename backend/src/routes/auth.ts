@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { deleteCookie, setCookie } from 'hono/cookie';
 import { getSupabase, getEnvVar, isAllowedEmailDomain } from '../lib/supabase';
 import { getAuthCookieName, getAuthCookieOptions } from '../lib/auth-cookie';
+import { createRateLimitMiddleware } from '../middleware/rate-limit';
 import { authMiddleware } from '../middleware/auth';
 import { asyncHandler, AppError } from '../utils/errors';
 import { HTTP_STATUS } from '../constants/http';
@@ -11,6 +12,7 @@ import { AuthUser } from '../types';
 import { ensureUserProfile } from '../services/profiles';
 
 const auth = new Hono();
+const authRateLimit = createRateLimitMiddleware({ keyPrefix: 'auth' });
 
 // サインアップスキーマ
 const signupSchema = z.object({
@@ -26,7 +28,7 @@ const loginSchema = z.object({
 });
 
 // サインアップ
-auth.post('/signup', zValidator('json', signupSchema), asyncHandler(async (c: any) => {
+auth.post('/signup', authRateLimit, zValidator('json', signupSchema), asyncHandler(async (c: any) => {
   const supabase = getSupabase();
   const { email, password, display_name } = c.req.valid('json');
 
@@ -81,7 +83,7 @@ auth.post('/signup', zValidator('json', signupSchema), asyncHandler(async (c: an
 }));
 
 // ログイン
-auth.post('/login', zValidator('json', loginSchema), asyncHandler(async (c: any) => {
+auth.post('/login', authRateLimit, zValidator('json', loginSchema), asyncHandler(async (c: any) => {
   const supabase = getSupabase();
   const { email, password } = c.req.valid('json');
   const requireEmailVerification = getEnvVar('REQUIRE_EMAIL_VERIFICATION') !== 'false';
