@@ -6,7 +6,6 @@ import { fetchAdminUsers, updateUserBanStatus } from '@/lib/api';
 import type { AdminUser } from '@/types';
 import { useAuth } from '@/lib/auth-context';
 
-export const runtime = 'edge';
 
 export default function AdminUsersPage() {
   const router = useRouter();

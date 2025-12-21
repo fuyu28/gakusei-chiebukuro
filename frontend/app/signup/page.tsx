@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { signup } from '@/lib/api';
 import { isValidEmail, isMeijoEmail } from '@/lib/utils';
 
-export const runtime = 'edge';
 
 export default function SignupPage() {
   const [email, setEmail] = useState('');

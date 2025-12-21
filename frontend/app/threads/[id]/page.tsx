@@ -25,7 +25,6 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { LoadingIndicator } from '@/components/ui/loading-indicator';
 
-export const runtime = 'edge';
 
 export default function ThreadDetailPage() {
   const params = useParams();

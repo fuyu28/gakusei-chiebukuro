@@ -16,7 +16,6 @@ import { useToast } from '@/hooks/use-toast';
 import { PageHeader } from '@/components/ui/page-header';
 import { LoadingIndicator } from '@/components/ui/loading-indicator';
 
-export const runtime = 'edge';
 
 export default function PastExamsPage() {
   const [files, setFiles] = useState<PastExamFile[]>([]);

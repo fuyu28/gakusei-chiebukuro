@@ -15,7 +15,6 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { LoadingIndicator } from '@/components/ui/loading-indicator';
 
-export const runtime = 'edge';
 
 export default function NewThreadPage() {
   const [title, setTitle] = useState('');

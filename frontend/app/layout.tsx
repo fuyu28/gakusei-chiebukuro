@@ -10,7 +10,6 @@ export const metadata: Metadata = {
   description: '名城大学の学生向けQ&Aプラットフォーム',
 };
 
-export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
 export default function RootLayout({
