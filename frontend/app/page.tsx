@@ -16,6 +16,8 @@ import { Badge } from '@/components/ui/badge';
 import { PageHeader } from '@/components/ui/page-header';
 import { LoadingIndicator } from '@/components/ui/loading-indicator';
 
+export const runtime = 'edge';
+
 export default function Home() {
   const [threads, setThreads] = useState<Thread[]>([]);
   const [tags, setTags] = useState<SubjectTag[]>([]);

@@ -10,6 +10,8 @@ import { formatDate } from '@/lib/utils';
 import { LoadingIndicator } from '@/components/ui/loading-indicator';
 import { useCoinData } from '@/hooks/use-coin';
 
+export const runtime = 'edge';
+
 export default function MePage() {
   const { isAuthenticated, loading: authLoading } = useRequireAuth();
   const { balance, events, loading, error, refresh, claimDaily } = useCoinData();
