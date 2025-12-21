@@ -1,4 +1,3 @@
-import type { Context } from 'hono';
 import { deleteCookie, setCookie } from 'hono/cookie';
 import { getSupabase, isAllowedEmailDomain } from '../../lib/supabase';
 import { getAuthCookieName, getAuthCookieOptions } from '../../lib/auth-cookie';
@@ -21,7 +20,7 @@ function clearSessionCookies(c: Context) {
   deleteCookie(c, getCsrfCookieName(), getCsrfCookieOptions());
 }
 
-export async function signupHandler(c: Context) {
+export async function signupHandler(c: any) {
   const supabase = getSupabase();
   const { email, password, display_name } = c.req.valid('json');
   const { requireEmailVerification, emailRedirectTo } = getAuthConfig();
@@ -73,7 +72,7 @@ export async function signupHandler(c: Context) {
   });
 }
 
-export async function loginHandler(c: Context) {
+export async function loginHandler(c: any) {
   const supabase = getSupabase();
   const { email, password } = c.req.valid('json');
   const { requireEmailVerification, returnAccessToken } = getAuthConfig();
