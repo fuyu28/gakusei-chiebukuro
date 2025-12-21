@@ -35,21 +35,23 @@ const defaultOrigins = [
   'http://localhost:8788', // wrangler pages dev
 ];
 
-const envOrigins = (getEnvVar('CORS_ALLOW_ORIGINS') || '')
-  .split(',')
-  .map((o) => o.trim())
-  .filter(Boolean);
-
-const allowedDomains = [...defaultOrigins, ...envOrigins];
+function getAllowedOrigins(): string[] {
+  const envOrigins = (getEnvVar('CORS_ALLOW_ORIGINS') || '')
+    .split(',')
+    .map((o) => o.trim())
+    .filter(Boolean);
+  return [...defaultOrigins, ...envOrigins];
+}
 
 app.use(
   '/*',
   cors({
     origin: (origin, _c) => {
       if (!origin) return null;
+      const allowedDomains = getAllowedOrigins();
       return allowedDomains.includes(origin) ? origin : null;
     },
-    allowHeaders: ['Content-Type', 'Authorization'],
+    allowHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],
     allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: true,
   })
@@ -59,7 +61,7 @@ app.use(
 app.use('*', securityHeaders);
 
 // Cookie認証時のCSRF対策（Origin/Refererベース）
-app.use('*', createCsrfMiddleware(allowedDomains));
+app.use('*', (c, next) => createCsrfMiddleware(getAllowedOrigins())(c, next));
 
 // ヘルスチェック
 app.get('/', (c) => {
