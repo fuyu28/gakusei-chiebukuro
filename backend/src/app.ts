@@ -9,6 +9,7 @@ import adminRoutes from './routes/admin';
 import pastExamsRoutes from './routes/past-exams';
 import coinsRoutes from './routes/coins';
 import { initSupabase, getEnvVar } from './lib/supabase';
+import { createCsrfMiddleware } from './middleware/csrf';
 
 const app = new Hono();
 
@@ -45,16 +46,16 @@ app.use(
   cors({
     origin: (origin, _c) => {
       if (!origin) return null;
-      if (allowedDomains.includes(origin)) return origin;
-      if (origin.endsWith('.pages.dev')) return origin;
-      if (origin.endsWith('.workers.dev')) return origin;
-      return null;
+      return allowedDomains.includes(origin) ? origin : null;
     },
     allowHeaders: ['Content-Type', 'Authorization'],
     allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: true,
   })
 );
+
+// Cookie認証時のCSRF対策（Origin/Refererベース）
+app.use('*', createCsrfMiddleware(allowedDomains));
 
 // ヘルスチェック
 app.get('/', (c) => {
