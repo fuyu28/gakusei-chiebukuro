@@ -1,7 +1,9 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
+import { deleteCookie, setCookie } from 'hono/cookie';
 import { getSupabase, getEnvVar, isAllowedEmailDomain } from '../lib/supabase';
+import { getAuthCookieName, getAuthCookieOptions } from '../lib/auth-cookie';
 import { authMiddleware } from '../middleware/auth';
 import { asyncHandler, AppError } from '../utils/errors';
 import { HTTP_STATUS } from '../constants/http';
@@ -63,6 +65,10 @@ auth.post('/signup', zValidator('json', signupSchema), asyncHandler(async (c: an
     displayName: display_name || (email as string).split('@')[0],
   });
 
+  if (!requireEmailVerification && data.session?.access_token) {
+    setCookie(c, getAuthCookieName(), data.session.access_token, getAuthCookieOptions(data.session.expires_in));
+  }
+
   return c.json({
     message: requireEmailVerification
       ? 'User created successfully. Please check your email to confirm.'
@@ -78,6 +84,7 @@ auth.post('/signup', zValidator('json', signupSchema), asyncHandler(async (c: an
 auth.post('/login', zValidator('json', loginSchema), asyncHandler(async (c: any) => {
   const supabase = getSupabase();
   const { email, password } = c.req.valid('json');
+  const requireEmailVerification = getEnvVar('REQUIRE_EMAIL_VERIFICATION') !== 'false';
 
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
@@ -88,20 +95,36 @@ auth.post('/login', zValidator('json', loginSchema), asyncHandler(async (c: any)
     throw new AppError(error.message, HTTP_STATUS.UNAUTHORIZED);
   }
 
-  return c.json({
+  if (requireEmailVerification && !data.user?.email_confirmed_at) {
+    throw new AppError('Email address is not verified', HTTP_STATUS.FORBIDDEN);
+  }
+
+  if (data.session?.access_token) {
+    setCookie(c, getAuthCookieName(), data.session.access_token, getAuthCookieOptions(data.session.expires_in));
+  }
+
+  const returnAccessToken = getEnvVar('RETURN_ACCESS_TOKEN') === 'true';
+  const response: Record<string, unknown> = {
     message: 'Login successful',
-    access_token: data.session?.access_token,
     user: {
       id: data.user?.id,
       email: data.user?.email,
     },
-  });
+  };
+
+  if (returnAccessToken) {
+    response.access_token = data.session?.access_token;
+  }
+
+  return c.json(response);
 }));
 
 // ログアウト
 auth.post('/logout', authMiddleware, asyncHandler(async (c) => {
   const supabase = getSupabase();
   const { error } = await supabase.auth.signOut();
+
+  deleteCookie(c, getAuthCookieName(), getAuthCookieOptions());
 
   if (error) {
     throw new AppError(error.message, HTTP_STATUS.BAD_REQUEST);
