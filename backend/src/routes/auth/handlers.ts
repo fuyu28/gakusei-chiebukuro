@@ -1,3 +1,4 @@
+import type { Context } from 'hono';
 import { deleteCookie, setCookie } from 'hono/cookie';
 import { getSupabase, isAllowedEmailDomain } from '../../lib/supabase';
 import { getAuthCookieName, getAuthCookieOptions } from '../../lib/auth-cookie';
