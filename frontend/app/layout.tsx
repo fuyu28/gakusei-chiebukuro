@@ -16,8 +16,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ja">
-      <body className="bg-gray-50">
+    <html lang="ja" suppressHydrationWarning>
+      <body className="bg-background text-foreground">
         <AuthProvider>
           <GlobalSuccessToast />
           <div className="flex min-h-screen flex-col">

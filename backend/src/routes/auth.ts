@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
-import { supabase, isAllowedEmailDomain } from '../lib/supabase';
+import { getSupabase, getEnvVar, isAllowedEmailDomain } from '../lib/supabase';
 import { authMiddleware } from '../middleware/auth';
 import { asyncHandler, AppError } from '../utils/errors';
 import { HTTP_STATUS } from '../constants/http';
@@ -25,6 +25,7 @@ const loginSchema = z.object({
 
 // サインアップ
 auth.post('/signup', zValidator('json', signupSchema), asyncHandler(async (c: any) => {
+  const supabase = getSupabase();
   const { email, password, display_name } = c.req.valid('json');
 
   // メールドメインチェック
@@ -35,13 +36,13 @@ auth.post('/signup', zValidator('json', signupSchema), asyncHandler(async (c: an
     );
   }
 
-  const requireEmailVerification = process.env.REQUIRE_EMAIL_VERIFICATION !== 'false';
+  const requireEmailVerification = getEnvVar('REQUIRE_EMAIL_VERIFICATION') !== 'false';
 
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      emailRedirectTo: process.env.EMAIL_REDIRECT_TO || undefined,
+      emailRedirectTo: getEnvVar('EMAIL_REDIRECT_TO') || undefined,
       data: {
         display_name: display_name || (email as string).split('@')[0],
       },
@@ -75,6 +76,7 @@ auth.post('/signup', zValidator('json', signupSchema), asyncHandler(async (c: an
 
 // ログイン
 auth.post('/login', zValidator('json', loginSchema), asyncHandler(async (c: any) => {
+  const supabase = getSupabase();
   const { email, password } = c.req.valid('json');
 
   const { data, error } = await supabase.auth.signInWithPassword({
@@ -98,6 +100,7 @@ auth.post('/login', zValidator('json', loginSchema), asyncHandler(async (c: any)
 
 // ログアウト
 auth.post('/logout', authMiddleware, asyncHandler(async (c) => {
+  const supabase = getSupabase();
   const { error } = await supabase.auth.signOut();
 
   if (error) {
@@ -124,6 +127,7 @@ auth.get('/me', authMiddleware, asyncHandler(async (c) => {
       created_at: profile?.created_at,
       is_banned: profile?.is_banned ?? false,
       is_admin: user.is_admin ?? false,
+      total_likes: profile?.total_likes || 0,
     },
   });
 }));

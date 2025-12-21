@@ -1,8 +1,9 @@
-import { supabase, supabaseAdmin } from '../lib/supabase';
+import { getSupabase, createClientWithToken } from '../lib/supabase';
 import { TABLES } from '../constants/database';
 import { Thread, ThreadWithDetails } from '../types';
 import { AppError } from '../utils/errors';
 import { HTTP_STATUS } from '../constants/http';
+import { createThreadWithCoins } from './coins';
 
 type ThreadFilters = {
   status?: 'open' | 'resolved';
@@ -14,6 +15,7 @@ type ThreadFilters = {
 export async function listThreads(filters: ThreadFilters): Promise<ThreadWithDetails[]> {
   const { status, subject_tag_id, sort = 'created_at', order = 'desc' } = filters;
 
+  const supabase = getSupabase();
   let query = supabase
     .from(TABLES.THREADS)
     .select(`
@@ -49,6 +51,7 @@ export async function listThreads(filters: ThreadFilters): Promise<ThreadWithDet
 }
 
 export async function getThreadById(id: number): Promise<ThreadWithDetails> {
+  const supabase = getSupabase();
   const { data, error } = await supabase
     .from(TABLES.THREADS)
     .select(`
@@ -72,28 +75,23 @@ export async function createThreadRecord(params: {
   subject_tag_id: number;
   deadline?: string | null;
   user_id: string;
+  coin_stake: number;
 }): Promise<Thread> {
-  const { data, error } = await supabaseAdmin
-    .from(TABLES.THREADS)
-    .insert({
-      title: params.title,
-      content: params.content,
-      subject_tag_id: params.subject_tag_id,
-      deadline: params.deadline || null,
-      user_id: params.user_id,
-    })
-    .select()
-    .single();
-
-  if (error || !data) {
-    throw new AppError(error?.message || 'Failed to create thread', HTTP_STATUS.BAD_REQUEST);
-  }
-
-  return data as Thread;
+  // スレッド作成時にコイン消費をまとめて行う
+  return createThreadWithCoins({
+    title: params.title,
+    content: params.content,
+    subject_tag_id: params.subject_tag_id,
+    deadline: params.deadline || null,
+    user_id: params.user_id,
+    coin_stake: params.coin_stake,
+  });
 }
 
-export async function updateThreadById(id: number, updates: Partial<Thread>): Promise<Thread> {
-  const { data, error } = await supabaseAdmin
+export async function updateThreadById(id: number, updates: Partial<Thread>, token: string): Promise<Thread> {
+  const supabaseWithToken = createClientWithToken(token);
+
+  const { data, error } = await supabaseWithToken
     .from(TABLES.THREADS)
     .update({
       ...updates,
@@ -110,8 +108,10 @@ export async function updateThreadById(id: number, updates: Partial<Thread>): Pr
   return data as Thread;
 }
 
-export async function deleteThreadById(id: number): Promise<void> {
-  const { error } = await supabaseAdmin.from(TABLES.THREADS).delete().eq('id', id);
+export async function deleteThreadById(id: number, token: string): Promise<void> {
+  const supabaseWithToken = createClientWithToken(token);
+
+  const { error } = await supabaseWithToken.from(TABLES.THREADS).delete().eq('id', id);
 
   if (error) {
     throw new AppError(error.message, HTTP_STATUS.BAD_REQUEST);
@@ -119,6 +119,7 @@ export async function deleteThreadById(id: number): Promise<void> {
 }
 
 export async function getThreadOwner(threadId: number): Promise<{ user_id: string }> {
+  const supabase = getSupabase();
   const { data, error } = await supabase
     .from(TABLES.THREADS)
     .select('user_id')
@@ -134,9 +135,12 @@ export async function getThreadOwner(threadId: number): Promise<{ user_id: strin
 
 export async function updateThreadStatus(
   threadId: number,
-  status: 'open' | 'resolved'
+  status: 'open' | 'resolved',
+  token: string
 ): Promise<void> {
-  const { error } = await supabaseAdmin
+  const supabaseWithToken = createClientWithToken(token);
+
+  const { error } = await supabaseWithToken
     .from(TABLES.THREADS)
     .update({ status, updated_at: new Date().toISOString() })
     .eq('id', threadId);

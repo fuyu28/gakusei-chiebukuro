@@ -14,9 +14,18 @@ import type {
   PastExamListResponse,
   PastExamResponse,
   PastExamFile,
+  CoinBalanceResponse,
+  CoinEventsResponse,
+  CoinRankingResponse,
+  DailyClaimResponse,
 } from '@/types';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000/api';
+const RAW_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000';
+const NORMALIZED_API_BASE_URL = RAW_API_BASE_URL.replace(/\/$/, '');
+// ベースURLに /api が付いていなければ付与する（重複を避けるための簡易ガード）
+const API_BASE_URL = NORMALIZED_API_BASE_URL.endsWith('/api')
+  ? NORMALIZED_API_BASE_URL
+  : `${NORMALIZED_API_BASE_URL}/api`;
 
 // トークン管理
 export const getAuthToken = (): string | null => {
@@ -79,7 +88,13 @@ async function apiFetch<T>(endpoint: string, options: RequestInit = {}): Promise
   })();
 
   if (!response.ok) {
-    throw new Error(errorMessage || 'API request failed');
+    // 401 応答時は無効なトークンを消して連続エラーを防ぐ
+    if (response.status === 401) {
+      clearAuthToken();
+    }
+    const error = new Error(errorMessage || 'API request failed') as Error & { status?: number };
+    error.status = response.status;
+    throw error;
   }
 
   return parsedBody as T;
@@ -143,6 +158,7 @@ export const createThread = async (threadData: {
   content: string;
   subject_tag_id: number;
   deadline?: string;
+  coin_stake: number;
 }): Promise<Thread> => {
   const data = await apiFetch<ThreadResponse>('/threads', {
     method: 'POST',
@@ -177,12 +193,23 @@ export const createAnswer = async (threadId: number, content: string): Promise<A
   return data.answer;
 };
 
-export const selectBestAnswer = async (answerId: number): Promise<void> => {
-  await apiFetch(`/answers/${answerId}/best`, { method: 'PATCH' });
+export const selectBestAnswer = async (answerId: number): Promise<{ reward?: number; my_balance?: number }> => {
+  const data = await apiFetch<{ reward?: number; my_balance?: number }>(`/answers/${answerId}/best`, { method: 'PATCH' });
+  return data;
 };
 
 export const deleteAnswer = async (answerId: number): Promise<void> => {
   await apiFetch(`/answers/${answerId}`, { method: 'DELETE' });
+};
+
+export const likeAnswer = async (answerId: number): Promise<{ likes_count: number; is_liked_by_me: boolean }> => {
+  const data = await apiFetch<{ likes_count: number; is_liked_by_me: boolean }>(`/answers/${answerId}/like`, { method: 'POST' });
+  return data;
+};
+
+export const unlikeAnswer = async (answerId: number): Promise<{ likes_count: number; is_liked_by_me: boolean }> => {
+  const data = await apiFetch<{ likes_count: number; is_liked_by_me: boolean }>(`/answers/${answerId}/like`, { method: 'DELETE' });
+  return data;
 };
 
 // 科目タグAPI
@@ -191,7 +218,7 @@ export const fetchSubjectTags = async () => {
   return data.tags;
 };
 
-// 過去問API
+// 参考資料API
 export const fetchPastExams = async (subjectTagId?: number): Promise<PastExamFile[]> => {
   const params = new URLSearchParams();
   if (subjectTagId) {
@@ -216,6 +243,25 @@ export const uploadPastExam = async (formData: FormData): Promise<PastExamFile[]
 
 export const deletePastExam = async (pastExamId: number): Promise<void> => {
   await apiFetch(`/past-exams/${pastExamId}`, { method: 'DELETE' });
+};
+
+// コインAPI
+export const fetchCoinBalance = async (): Promise<CoinBalanceResponse> => {
+  return apiFetch<CoinBalanceResponse>('/coins/balance');
+};
+
+export const claimDailyCoins = async (): Promise<DailyClaimResponse> => {
+  return apiFetch<DailyClaimResponse>('/coins/daily-claim', { method: 'POST' });
+};
+
+export const fetchCoinEvents = async (limit = 30): Promise<CoinEventsResponse> => {
+  const params = new URLSearchParams({ limit: String(limit) });
+  return apiFetch<CoinEventsResponse>(`/coins/events?${params.toString()}`);
+};
+
+export const fetchCoinRanking = async (limit = 20): Promise<CoinRankingResponse> => {
+  const params = new URLSearchParams({ limit: String(limit) });
+  return apiFetch<CoinRankingResponse>(`/coins/ranking?${params.toString()}`);
 };
 
 // 管理者API

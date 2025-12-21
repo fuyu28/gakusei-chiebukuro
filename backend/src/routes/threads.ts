@@ -23,6 +23,7 @@ const createThreadSchema = z.object({
   content: z.string().min(1),
   subject_tag_id: z.number().int().positive(),
   deadline: z.string().datetime().optional(),
+  coin_stake: z.number().int().positive(),
 });
 
 // スレッド更新スキーマ
@@ -59,7 +60,7 @@ threads.get('/:id', asyncHandler(async (c) => {
 // スレッド作成
 threads.post('/', authMiddleware, zValidator('json', createThreadSchema), asyncHandler(async (c: any) => {
   const user = c.get('user') as AuthUser;
-  const { title, content, subject_tag_id, deadline } = c.req.valid('json');
+  const { title, content, subject_tag_id, deadline, coin_stake } = c.req.valid('json');
 
   const thread = await createThreadRecord({
     title,
@@ -67,6 +68,7 @@ threads.post('/', authMiddleware, zValidator('json', createThreadSchema), asyncH
     subject_tag_id,
     deadline: deadline || null,
     user_id: user.id,
+    coin_stake,
   });
 
   return c.json({ message: 'Thread created successfully', thread }, HTTP_STATUS.CREATED as any);
@@ -77,12 +79,13 @@ threads.patch('/:id', authMiddleware, zValidator('json', updateThreadSchema), as
   const user = c.get('user') as AuthUser;
   const id = parseInt(c.req.param('id'));
   const updates: any = c.req.valid('json');
+  const token = c.get('auth_token') as string;
 
   // スレッドの所有者確認
   await verifyOwnership(TABLES.THREADS, id, user.id);
 
   // 更新
-  const updatedThread = await updateThreadById(id, updates);
+  const updatedThread = await updateThreadById(id, updates, token);
 
   return c.json({ message: 'Thread updated successfully', thread: updatedThread });
 }));
@@ -91,10 +94,11 @@ threads.patch('/:id', authMiddleware, zValidator('json', updateThreadSchema), as
 threads.delete('/:id', authMiddleware, asyncHandler(async (c) => {
   const user = c.get('user') as AuthUser;
   const id = parseInt(c.req.param('id'));
+  const token = c.get('auth_token') as string;
 
   // スレッドの所有者確認
   await verifyOwnership(TABLES.THREADS, id, user.id);
-  await deleteThreadById(id);
+  await deleteThreadById(id, token);
 
   return c.json({ message: 'Thread deleted successfully' });
 }));

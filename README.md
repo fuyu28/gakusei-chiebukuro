@@ -14,7 +14,8 @@ Yahoo!知恵袋のような形式で、学生同士が学習に関する質問�
 - **ベストアンサー**: 質問者が最も役立った回答を選択
 - **解決済/未解決**: ステータスで質問を管理
 - **回答締切**: 質問に回答期限を設定可能
-- **過去問アーカイブ**: PDF / 画像をアップロードし、科目ごとに共有・閲覧
+- **回答へのいいね**: 役立つ回答にいいねをすることが可能（獲得したいいね数はプロフィールに表示）
+- **参考資料アーカイブ**: PDF / 画像をアップロードし、科目ごとに共有・閲覧
 - **フィルタ機能**: ステータスや科目でフィルタリング
 - **管理者ダッシュボード**: 指定した管理者がユーザー一覧の確認やBAN/解除を実行可能
 
@@ -66,6 +67,12 @@ gakusei-chiebukuro/
     └── next.config.ts
 ```
 
+## CI / CD
+
+- **CI (GitHub Actions)**: `.github/workflows/ci.yml` でPR時に実行。フロントエンドは Bun で lint/build、バックエンドは Bun で type-check/build を行い、Next.js キャッシュを活用して高速化。
+- **CD (Cloudflare Workers - フロントエンド)**: OpenNext (`@opennextjs/cloudflare`) でビルドし、`wrangler` 経由で Workers へデプロイ。ビルド時に `NEXT_PUBLIC_API_BASE_URL` などの環境変数を設定する。
+- **CD (Cloudflare Workers - バックエンド)**: `backend/wrangler.toml` を利用し `wrangler deploy` で Workers にデプロイ。Supabase キーなどのシークレット/環境変数は Cloudflare ダッシュボードまたは `wrangler secret put` / `[vars]` で設定する。
+
 ## セットアップ
 
 ### 前提条件
@@ -88,15 +95,15 @@ gakusei-chiebukuro/
 ```bash
 cd backend
 
-# 依存関係のインストール
-npm install
+# 依存関係のインストール（CIと同じくBunを推奨）
+bun install   # または npm install
 
 # 環境変数の設定
 cp .env.example .env
 # .env ファイルを編集してSupabase認証情報を設定
 
 # 開発サーバーの起動
-npm run dev
+bun run dev   # または npm run dev
 ```
 
 **`.env` の設定例:**
@@ -113,18 +120,18 @@ ADMIN_EMAILS=admin1@ccmailg.meijo-u.ac.jp,admin2@ccmailg.meijo-u.ac.jp
 ```
 
 `ADMIN_EMAILS` には管理者権限を付与したいメールアドレスをカンマ区切りで指定します。指定されたユーザーは管理者ダッシュボードへアクセスでき、BAN 操作などを実行できます。
-`SUPABASE_PAST_EXAM_BUCKET` は過去問ファイルを保存する Supabase Storage バケット名です（デフォルト `past-exams`）。
+`SUPABASE_PAST_EXAM_BUCKET` は参考資料ファイルを保存する Supabase Storage バケット名です（デフォルト `past-exams`）。
 
 ### 3. フロントエンドのセットアップ
 
 ```bash
 cd frontend
 
-# 依存関係のインストール
-npm install
+# 依存関係のインストール（CIと同じくBunを推奨）
+bun install   # または npm install
 
 # 開発サーバーの起動 (http://localhost:8080)
-npm run dev
+bun run dev   # または npm run dev
 ```
 
 必要に応じて `.env.local` などで `NEXT_PUBLIC_API_BASE_URL` を上書きできます（デフォルトは `http://localhost:3000/api`）。
@@ -183,16 +190,18 @@ docker-compose up -d --build
 - `POST /api/answers` - 回答投稿（認証必要）
 - `PATCH /api/answers/:id/best` - ベストアンサー選択（認証必要）
 - `DELETE /api/answers/:id` - 回答削除（認証必要）
+- `POST /api/answers/:id/like` - 回答へのいいね（認証必要）
+- `DELETE /api/answers/:id/like` - 回答へのいいね解除（認証必要）
 
 ### 科目タグ
 
 - `GET /api/subject-tags` - 科目タグ一覧取得
 - `POST /api/subject-tags` - 科目タグ作成（管理用）
 
-### 過去問
+### 参考資料
 
-- `GET /api/past-exams` - 過去問一覧取得（`subject_tag_id` クエリで科目フィルタ）
-- `POST /api/past-exams` - 過去問をアップロード（要ログイン / `multipart/form-data` で `subject_tag_id`, `file`, `title` 任意）
+- `GET /api/past-exams` - 参考資料一覧取得（`subject_tag_id` クエリで科目フィルタ）
+- `POST /api/past-exams` - 参考資料をアップロード（要ログイン / `multipart/form-data` で `subject_tag_id`, `file`, `title` 任意）
 
 ### 管理者
 
@@ -210,19 +219,28 @@ docker-compose up -d --build
 
 ## デプロイ
 
-### バックエンド（Cloudflare Workers推奨）
+### バックエンド（Cloudflare Workers）
 
 ```bash
 cd backend
-npm run build
-# Cloudflare Workersにデプロイ
+# ビルド
+bun run build   # または npm run build
+# デプロイ
+wrangler deploy
 ```
 
-### フロントエンド（Netlify / Vercel / GitHub Pages等）
+`wrangler.toml` で Worker を管理。Supabaseキーなどの環境変数/シークレットは Cloudflare ダッシュボードまたは `wrangler secret put` / `[vars]` で設定してください。
+
+### フロントエンド（Cloudflare Workers / OpenNext）
 
 ```bash
-# frontend/ ディレクトリをそのままデプロイ
+cd frontend
+# OpenNext向けビルドとデプロイ
+bun run opennext:build   # または npm run opennext:build
+bun run opennext:deploy  # または npm run opennext:deploy
 ```
+
+`frontend/wrangler.toml` を使って Workers にデプロイします。Cloudflare のビルドコマンドは `bun run opennext:build`、デプロイコマンドは `bun run opennext:deploy` を指定してください。`build` スクリプトは `next build` のままにしておき、OpenNext を呼ぶときは `opennext:build` を使います。ビルド時に `NEXT_PUBLIC_API_BASE_URL` などの環境変数を Cloudflare 側に設定してください（設定が無いとクライアント側にlocalhostが埋め込まれます）。
 
 ## ライセンス
 

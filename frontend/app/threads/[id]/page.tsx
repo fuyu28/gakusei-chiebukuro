@@ -10,11 +10,20 @@ import {
   selectBestAnswer,
   deleteAnswer,
   updateThread,
+  likeAnswer,
+  unlikeAnswer,
 } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
 import type { Thread, Answer } from '@/types';
-import { useAuth } from '@/lib/auth-context';
-import { SuccessToast } from '@/components/SuccessToast';
+import { useAuth, useRequireAuth } from '@/lib/auth-context';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { useToast } from '@/hooks/use-toast';
+import { LoadingIndicator } from '@/components/ui/loading-indicator';
 
 export default function ThreadDetailPage() {
   const params = useParams();
@@ -25,12 +34,15 @@ export default function ThreadDetailPage() {
   const [answerContent, setAnswerContent] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const { user: currentUser, isAuthenticated } = useAuth();
+  const [likeLoadingIds, setLikeLoadingIds] = useState<Set<number>>(new Set());
+  const { user: currentUser } = useAuth();
+  const { isAuthenticated, loading: authLoading } = useRequireAuth();
+  const { toast } = useToast();
 
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
+      setError('');
       const [threadData, answersData] = await Promise.all([
         fetchThreadDetail(threadId),
         fetchAnswers(threadId),
@@ -40,19 +52,24 @@ export default function ThreadDetailPage() {
       setAnswers(answersData);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'データの読み込みに失敗しました');
+      toast({
+        variant: 'destructive',
+        title: '読み込みに失敗しました',
+        description: '時間をおいて再度お試しください。',
+      });
     } finally {
       setLoading(false);
     }
-  }, [threadId]);
+  }, [threadId, toast]);
 
   useEffect(() => {
+    if (!isAuthenticated) return;
     loadData();
-  }, [loadData]);
+  }, [isAuthenticated, loadData]);
 
   const handleSubmitAnswer = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
-    setSuccess('');
 
     if (!answerContent.trim()) {
       setError('回答内容を入力してください');
@@ -62,10 +79,17 @@ export default function ThreadDetailPage() {
     try {
       await createAnswer(threadId, answerContent);
       setAnswerContent('');
-      setSuccess('回答を投稿しました');
+      toast({
+        description: '回答を投稿しました',
+      });
       await loadData();
     } catch (err) {
       setError(err instanceof Error ? err.message : '回答の投稿に失敗しました');
+      toast({
+        variant: 'destructive',
+        title: '回答の投稿に失敗しました',
+        description: err instanceof Error ? err.message : undefined,
+      });
     }
   };
 
@@ -75,11 +99,20 @@ export default function ThreadDetailPage() {
     }
 
     try {
-      await selectBestAnswer(answerId);
-      setSuccess('ベストアンサーを選択しました');
+      const result = await selectBestAnswer(answerId);
+      toast({
+        description: result?.reward
+          ? `ベストアンサーを選択しました（${result.reward} コイン付与）`
+          : 'ベストアンサーを選択しました',
+      });
       await loadData();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'ベストアンサーの選択に失敗しました');
+      toast({
+        variant: 'destructive',
+        title: 'ベストアンサーの選択に失敗しました',
+        description: err instanceof Error ? err.message : undefined,
+      });
     }
   };
 
@@ -90,36 +123,105 @@ export default function ThreadDetailPage() {
 
     try {
       await deleteAnswer(answerId);
-      setSuccess('回答を削除しました');
+      toast({ description: '回答を削除しました' });
       await loadData();
     } catch (err) {
       setError(err instanceof Error ? err.message : '回答の削除に失敗しました');
+      toast({
+        variant: 'destructive',
+        title: '回答の削除に失敗しました',
+        description: err instanceof Error ? err.message : undefined,
+      });
     }
   };
 
+  const handleToggleLike = async (answer: Answer) => {
+    if (!isAuthenticated) {
+      setError('いいねするにはログインが必要です');
+      return;
+    }
+
+    setLikeLoadingIds((prev) => {
+      const next = new Set(prev);
+      next.add(answer.id);
+      return next;
+    });
+
+    try {
+      const result = answer.is_liked_by_me
+        ? await unlikeAnswer(answer.id)
+        : await likeAnswer(answer.id);
+
+      setAnswers((prev) =>
+        prev.map((a) =>
+          a.id === answer.id
+            ? { ...a, likes_count: result.likes_count, is_liked_by_me: result.is_liked_by_me }
+            : a
+        )
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'いいねの更新に失敗しました');
+      toast({
+        variant: 'destructive',
+        title: 'いいねの更新に失敗しました',
+        description: err instanceof Error ? err.message : undefined,
+      });
+    }
+    setLikeLoadingIds((prev) => {
+      const next = new Set(prev);
+      next.delete(answer.id);
+      return next;
+    });
+  };
+
   const handleResolveThread = async () => {
+    if (stake > 0 && !thread?.coin_reward_paid) {
+      toast({
+        variant: 'destructive',
+        title: 'ベストアンサーを選択してください',
+        description: 'コインが賭けられているため、ベストアンサーを選んで報酬を配分してください。',
+      });
+      return;
+    }
+
     if (!confirm('このスレッドを解決済みにしますか？')) {
       return;
     }
 
     try {
       await updateThread(threadId, { status: 'resolved' });
-      setSuccess('スレッドを解決済みにしました');
+      toast({ description: 'スレッドを解決済みにしました' });
       await loadData();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'スレッドの更新に失敗しました');
+      toast({
+        variant: 'destructive',
+        title: 'スレッドの更新に失敗しました',
+        description: err instanceof Error ? err.message : undefined,
+      });
     }
   };
+
+  if (authLoading) {
+    return (
+      <main className="container mx-auto px-4 py-8">
+        <LoadingIndicator />
+      </main>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return null;
+  }
 
   if (loading) {
     return (
       <main className="container mx-auto px-4 py-8">
-        <div className="bg-white rounded-lg shadow-md p-8">
-          <div className="text-center">
-            <div className="inline-block w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-            <p className="text-gray-600">読み込み中...</p>
-          </div>
-        </div>
+        <Card className="shadow-sm">
+          <CardContent className="flex items-center justify-center py-12">
+            <LoadingIndicator />
+          </CardContent>
+        </Card>
       </main>
     );
   }
@@ -127,9 +229,10 @@ export default function ThreadDetailPage() {
   if (!thread) {
     return (
       <main className="container mx-auto px-4 py-8">
-        <div className="text-center py-12">
-          <p className="text-red-600 text-lg">スレッドが見つかりませんでした</p>
-        </div>
+        <Alert variant="destructive">
+          <AlertTitle>スレッドが見つかりませんでした</AlertTitle>
+          <AlertDescription>URLをご確認ください。</AlertDescription>
+        </Alert>
       </main>
     );
   }
@@ -139,155 +242,183 @@ export default function ThreadDetailPage() {
     isAuthenticated &&
     thread.status === 'open' &&
     (!thread.deadline || new Date(thread.deadline) > new Date());
+  const deadlinePassed = thread.deadline && new Date(thread.deadline) <= new Date();
+  const stake = Number(thread.coin_stake ?? 0);
+  const fee = Number(thread.coin_fee ?? 0);
+  const reward = Number.isNaN(Number(thread.coin_reward_amount))
+    ? Math.max(stake - fee, 0)
+    : Number(thread.coin_reward_amount ?? 0);
+
+  const userInitial = (thread.user?.display_name || thread.user?.email || '?')
+    .slice(0, 1)
+    .toUpperCase();
 
   return (
-    <>
-      <SuccessToast message={success} onClose={() => setSuccess('')} />
-      <main className="container mx-auto px-4 py-8">
-        {error && (
-          <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg">{error}</div>
-        )}
+    <main className="container mx-auto px-4 py-8 space-y-6">
+      {error && (
+        <Alert variant="destructive">
+          <AlertTitle>エラー</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
 
-        {/* スレッド詳細 */}
-        <div className="bg-white rounded-lg shadow-md p-8 mb-8">
-          <div className="flex items-start justify-between mb-6">
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-4 flex-wrap">
-                <h1 className="text-3xl font-bold">{thread.title}</h1>
-                <span
-                  className={`px-3 py-1 text-sm font-medium rounded-full ${
-                    thread.status === 'resolved'
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-blue-100 text-blue-800'
-                  }`}
-                >
+      <Card className="shadow-sm">
+        <CardHeader className="gap-4 md:flex md:flex-row md:items-start md:justify-between">
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant={thread.status === 'resolved' ? 'secondary' : 'default'}>
                   {thread.status === 'resolved' ? '解決済み' : '未解決'}
-                </span>
+                </Badge>
+                {thread.subject_tag && <Badge variant="outline">{thread.subject_tag.name}</Badge>}
+                {thread.deadline && (
+                  <Badge variant="destructive">締切 {formatDate(thread.deadline)}</Badge>
+                )}
+              {stake > 0 && <Badge variant="outline">報酬 {reward} 枚</Badge>}
+            </div>
+            <CardTitle className="text-3xl leading-tight">{thread.title}</CardTitle>
+            <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <Avatar className="h-9 w-9">
+                  <AvatarFallback>{userInitial}</AvatarFallback>
+                </Avatar>
+                <span>{thread.user?.display_name || thread.user?.email}</span>
               </div>
+              <span>投稿: {formatDate(thread.created_at)}</span>
             </div>
-            {isAuthor && thread.status !== 'resolved' && (
-              <button
-                onClick={handleResolveThread}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
-              >
-                解決済みにする
-              </button>
-            )}
           </div>
-
-          <p className="text-lg mb-6 whitespace-pre-wrap">{thread.content}</p>
-
-          <div className="flex flex-wrap gap-4 text-sm text-gray-600">
-            {thread.subject_tag && (
-              <span className="px-3 py-1 bg-gray-100 rounded-full">
-                {thread.subject_tag.name}
-              </span>
-            )}
-            <span>{thread.user?.display_name || thread.user?.email}</span>
-            <span>{formatDate(thread.created_at)}</span>
-            {thread.deadline && (
-              <span className="text-red-600">締切: {formatDate(thread.deadline)}</span>
-            )}
-          </div>
-        </div>
-
-        {/* 回答セクション */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold mb-4">
-            回答 ({answers.length}件)
-          </h2>
-
-          {answers.length === 0 ? (
-            <div className="bg-white rounded-lg shadow-md p-8 text-center text-gray-600">
-              まだ回答がありません
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {answers.map((answer) => (
-                <div
-                  key={answer.id}
-                  className={`bg-white rounded-lg shadow-md p-6 ${
-                    answer.is_best_answer ? 'border-2 border-green-500' : ''
-                  }`}
-                >
-                  {answer.is_best_answer && (
-                    <div className="inline-block px-3 py-1 bg-green-600 text-white text-sm font-medium rounded-full mb-3">
-                      ベストアンサー
-                    </div>
-                  )}
-
-                  <p className="text-lg mb-4 whitespace-pre-wrap">{answer.content}</p>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex gap-4 text-sm text-gray-600">
-                      <span className="font-medium">
-                        {answer.user?.display_name || answer.user?.email}
-                      </span>
-                      <span>{formatDate(answer.created_at)}</span>
-                    </div>
-
-                    <div className="flex gap-2">
-                      {isAuthor &&
-                        !answer.is_best_answer &&
-                        thread.status !== 'resolved' && (
-                          <button
-                            onClick={() => handleSelectBestAnswer(answer.id)}
-                            className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition"
-                          >
-                            ベストアンサーに選ぶ
-                          </button>
-                        )}
-                      {currentUser && currentUser.id === answer.user_id && (
-                        <button
-                          onClick={() => handleDeleteAnswer(answer.id)}
-                          className="px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition"
-                        >
-                          削除
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+          {isAuthor && thread.status !== 'resolved' && (
+            <Button variant="outline" onClick={handleResolveThread} className="w-full sm:w-auto">
+              解決済みにする
+            </Button>
           )}
-        </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="whitespace-pre-wrap text-lg leading-relaxed">{thread.content}</p>
+        </CardContent>
+      </Card>
 
-        {/* 回答フォーム */}
-        {canAnswer ? (
-          <div className="bg-white rounded-lg shadow-md p-8">
-            <h3 className="text-xl font-bold mb-4">回答を投稿</h3>
+      {canAnswer ? (
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-xl">回答を投稿</CardTitle>
+          </CardHeader>
+          <CardContent>
             <form onSubmit={handleSubmitAnswer} className="space-y-4">
-              <textarea
+              <Textarea
                 value={answerContent}
                 onChange={(e) => setAnswerContent(e.target.value)}
                 placeholder="回答を入力してください"
                 required
-                rows={6}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                rows={5}
               />
-              <button
-                type="submit"
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-              >
-                回答する
-              </button>
+              <div className="flex justify-end">
+                <Button type="submit">回答する</Button>
+              </div>
             </form>
-          </div>
-        ) : (
-          !isAuthenticated && (
-            <div className="bg-white rounded-lg shadow-md p-8 text-center">
-              <p className="text-gray-600">
-                回答するには
-                <Link href="/login" className="text-blue-600 hover:underline mx-1">
-                  ログイン
-                </Link>
-                してください
-              </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card className="shadow-sm">
+          <CardContent className="py-6">
+            <div className="text-center text-muted-foreground">
+              {thread.status === 'resolved' && 'このスレッドは解決済みです'}
+              {deadlinePassed && thread.status === 'open' && '回答の受付は締め切られました'}
+              {!isAuthenticated && (
+                <span>
+                  回答するには
+                  <Link href="/login" className="text-primary underline-offset-4 hover:underline">
+                    ログイン
+                  </Link>
+                  してください
+                </span>
+              )}
             </div>
-          )
-        )}
-      </main>
-    </>
+          </CardContent>
+        </Card>
+      )}
+
+      <Card className="shadow-sm">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="text-xl">回答</CardTitle>
+            <p className="text-sm text-muted-foreground">{answers.length} 件</p>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {answers.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-muted-foreground/30 px-4 py-10 text-center text-muted-foreground">
+              まだ回答がありません
+            </div>
+          ) : (
+            answers.map((answer) => {
+              const isOwner = currentUser && currentUser.id === answer.user_id;
+              const answerInitial = (answer.user?.display_name || answer.user?.email || '?')
+                .slice(0, 1)
+                .toUpperCase();
+              return (
+                <div
+                  key={answer.id}
+                  className={`rounded-lg border bg-card px-4 py-5 ${
+                    answer.is_best_answer ? 'border-primary bg-primary/5' : ''
+                  }`}
+                >
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                      <Avatar className="h-8 w-8">
+                        <AvatarFallback>{answerInitial}</AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <div className="font-semibold text-foreground">
+                          {answer.user?.display_name || answer.user?.email}
+                        </div>
+                        <div>{formatDate(answer.created_at)}</div>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {answer.is_best_answer && <Badge>ベストアンサー</Badge>}
+                      {!isAuthor && (
+                        <Button
+                          variant={answer.is_liked_by_me ? 'secondary' : 'outline'}
+                          size="sm"
+                          onClick={() => handleToggleLike(answer)}
+                          disabled={likeLoadingIds.has(answer.id)}
+                          className="gap-2 w-full sm:w-auto"
+                        >
+                          <span>👍</span>
+                          {answer.likes_count || 0}
+                        </Button>
+                      )}
+                      {isAuthor && !answer.is_best_answer && thread.status !== 'resolved' && (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => handleSelectBestAnswer(answer.id)}
+                          className="w-full sm:w-auto"
+                        >
+                          ベストに選ぶ
+                        </Button>
+                      )}
+                      {isOwner && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteAnswer(answer.id)}
+                          className="w-full sm:w-auto text-destructive"
+                        >
+                          削除
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                  <p className="mt-3 whitespace-pre-wrap text-base leading-relaxed">
+                    {answer.content}
+                  </p>
+                </div>
+              );
+            })
+          )}
+        </CardContent>
+      </Card>
+    </main>
   );
 }
