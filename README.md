@@ -240,7 +240,7 @@ bun run opennext:build   # または npm run opennext:build
 bun run opennext:deploy  # または npm run opennext:deploy
 ```
 
-`frontend/wrangler.toml` を使って Workers にデプロイします。ビルド時に `NEXT_PUBLIC_API_BASE_URL` などの環境変数を Cloudflare 側に設定してください（設定が無いとクライアント側にlocalhostが埋め込まれます）。
+`frontend/wrangler.toml` を使って Workers にデプロイします。Cloudflare のビルドコマンドは `bun run opennext:build`、デプロイコマンドは `bun run opennext:deploy` を指定してください。ビルド時に `NEXT_PUBLIC_API_BASE_URL` などの環境変数を Cloudflare 側に設定してください（設定が無いとクライアント側にlocalhostが埋め込まれます）。
 
 ## ライセンス
 
