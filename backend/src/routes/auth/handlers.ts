@@ -1,5 +1,5 @@
 import type { Context } from 'hono';
-import { deleteCookie, setCookie } from 'hono/cookie';
+import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { getSupabase, isAllowedEmailDomain } from '../../lib/supabase';
 import { getAuthCookieName, getAuthCookieOptions } from '../../lib/auth-cookie';
 import { createCsrfToken, getCsrfCookieName, getCsrfCookieOptions } from '../../lib/csrf';
@@ -123,6 +123,11 @@ export async function logoutHandler(c: Context) {
 
 export async function meHandler(c: Context) {
   const user = c.get('user') as AuthUser;
+  const csrfCookie = getCookie(c, getCsrfCookieName());
+
+  if (!csrfCookie) {
+    setCookie(c, getCsrfCookieName(), createCsrfToken(), getCsrfCookieOptions());
+  }
 
   const profile = await ensureUserProfile({
     id: user.id,
