@@ -1,6 +1,6 @@
 import type { Context } from 'hono';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
-import { getSupabase, isAllowedEmailDomain } from '../../lib/supabase';
+import { getSupabase, isAllowedEmailDomain, createClientWithToken } from '../../lib/supabase';
 import { getAuthCookieName, getAuthCookieOptions } from '../../lib/auth-cookie';
 import { createCsrfToken, getCsrfCookieName, getCsrfCookieOptions } from '../../lib/csrf';
 import { getAuthConfig } from '../../config/auth';
@@ -109,14 +109,14 @@ export async function loginHandler(c: any) {
 }
 
 export async function logoutHandler(c: Context) {
-  const supabase = getSupabase();
-  const { error } = await supabase.auth.signOut();
+  const token = c.get('auth_token') as string | undefined;
+
+  if (token) {
+    const supabaseWithToken = createClientWithToken(token);
+    await supabaseWithToken.auth.signOut();
+  }
 
   clearSessionCookies(c);
-
-  if (error) {
-    throw new AppError(error.message, HTTP_STATUS.BAD_REQUEST);
-  }
 
   return c.json({ message: 'Logout successful' });
 }
