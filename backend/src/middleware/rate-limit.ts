@@ -11,9 +11,21 @@ type RateEntry = {
   resetAt: number;
 };
 
+// NOTE: インメモリストアのため Cloudflare Workers の複数インスタンス間では
+// カウントが共有されない。厳密な分散レート制限が必要な場合は
+// Cloudflare KV / Durable Objects への移行を検討すること。
 const store = new Map<string, RateEntry>();
 const DEFAULT_WINDOW_MS = 10 * 60 * 1000;
 const DEFAULT_MAX = 20;
+const CLEANUP_INTERVAL = 50;
+let requestCount = 0;
+
+function purgeExpiredEntries(): void {
+  const now = Date.now();
+  for (const [key, entry] of store) {
+    if (now > entry.resetAt) store.delete(key);
+  }
+}
 
 function getClientIp(c: Context): string {
   // CF-Connecting-IP はCloudflareが付与するため信頼できる。
@@ -29,6 +41,9 @@ export function createRateLimitMiddleware(options?: Partial<RateLimitOptions>) {
   const keyPrefix = options?.keyPrefix ?? 'auth';
 
   return async (c: Context, next: Next) => {
+    requestCount += 1;
+    if (requestCount % CLEANUP_INTERVAL === 0) purgeExpiredEntries();
+
     const ip = getClientIp(c);
     const now = Date.now();
     const key = `${keyPrefix}:${ip}`;
