@@ -4,6 +4,8 @@ import { z } from 'zod';
 import { asyncHandler } from '../utils/errors';
 import { HTTP_STATUS } from '../constants/http';
 import { listSubjectTags, createSubjectTag } from '../services/subjectTags';
+import { authMiddleware } from '../middleware/auth';
+import { adminMiddleware } from '../middleware/admin';
 
 const subjectTags = new Hono();
 
@@ -18,8 +20,8 @@ subjectTags.get('/', asyncHandler(async (c) => {
   return c.json({ tags });
 }));
 
-// 科目タグ作成（管理者用 - 後で権限チェックを追加）
-subjectTags.post('/', zValidator('json', createTagSchema), asyncHandler(async (c: any) => {
+// 科目タグ作成（管理者のみ）
+subjectTags.post('/', authMiddleware, adminMiddleware, zValidator('json', createTagSchema), asyncHandler(async (c: any) => {
   const { name } = c.req.valid('json');
 
   const tag = await createSubjectTag(name);
