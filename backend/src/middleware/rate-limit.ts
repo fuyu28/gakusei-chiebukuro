@@ -16,12 +16,10 @@ const DEFAULT_WINDOW_MS = 10 * 60 * 1000;
 const DEFAULT_MAX = 20;
 
 function getClientIp(c: Context): string {
+  // CF-Connecting-IP はCloudflareが付与するため信頼できる。
+  // X-Forwarded-For / X-Real-IP はクライアントが偽造可能なため使用しない。
   const cf = c.req.header('CF-Connecting-IP');
   if (cf) return cf;
-  const xff = c.req.header('X-Forwarded-For');
-  if (xff) return xff.split(',')[0]?.trim() || xff;
-  const realIp = c.req.header('X-Real-IP');
-  if (realIp) return realIp;
   return 'unknown';
 }
 
