@@ -34,18 +34,24 @@ async function ensureSubjectTagExists(subjectTagId: number): Promise<void> {
   }
 }
 
-async function createSignedUrl(filePath: string): Promise<string | null> {
+async function createSignedUrls(filePaths: string[]): Promise<Map<string, string>> {
+  if (filePaths.length === 0) return new Map();
+
   const supabaseAdmin = getSupabaseAdmin();
   const { data, error } = await supabaseAdmin.storage
     .from(getBucketName())
-    .createSignedUrl(filePath, SIGNED_URL_EXPIRATION);
+    .createSignedUrls(filePaths, SIGNED_URL_EXPIRATION);
 
-  if (error || !data?.signedUrl) {
-    console.warn('Failed to create signed URL for file', filePath, error?.message);
-    return null;
+  if (error || !data) {
+    console.warn('Failed to create signed URLs', error?.message);
+    return new Map();
   }
 
-  return data.signedUrl;
+  return new Map(
+    data
+      .filter((item) => item.signedUrl)
+      .map((item) => [item.path, item.signedUrl])
+  );
 }
 
 export async function listPastExamFiles(subjectTagId?: number): Promise<PastExamFileWithRelations[]> {
@@ -86,12 +92,12 @@ export async function listPastExamFiles(subjectTagId?: number): Promise<PastExam
 
   const files = (data as PastExamFileWithRelations[]) || [];
 
-  return Promise.all(
-    files.map(async (file) => {
-      const downloadUrl = await createSignedUrl(file.file_path);
-      return { ...file, download_url: downloadUrl || undefined };
-    })
-  );
+  const signedUrlMap = await createSignedUrls(files.map((f) => f.file_path));
+
+  return files.map((file) => ({
+    ...file,
+    download_url: signedUrlMap.get(file.file_path) || undefined,
+  }));
 }
 
 export async function uploadPastExamFile(params: {
@@ -153,8 +159,8 @@ export async function uploadPastExamFile(params: {
     throw new AppError(error?.message || ERROR_MESSAGES.FAILED_TO_UPLOAD_FILE, HTTP_STATUS.BAD_REQUEST);
   }
 
-  const downloadUrl = await createSignedUrl(filePath);
-  return { ...(data as PastExamFileWithRelations), download_url: downloadUrl || undefined };
+  const signedUrlMap = await createSignedUrls([filePath]);
+  return { ...(data as PastExamFileWithRelations), download_url: signedUrlMap.get(filePath) || undefined };
 }
 
 export async function deletePastExamFileById(id: number): Promise<void> {
