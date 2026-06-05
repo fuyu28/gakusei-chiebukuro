@@ -226,34 +226,10 @@ export async function unlikeAnswer(answerId: number, userId: string, token: stri
 
 async function incrementProfileLikes(userId: string) {
   const supabaseAdmin = getSupabaseAdmin();
-  // Fetch current likes
-  const { data: profile } = await supabaseAdmin
-    .from(TABLES.PROFILES)
-    .select('total_likes')
-    .eq('id', userId)
-    .single();
-
-  const current = profile?.total_likes || 0;
-
-  await supabaseAdmin
-    .from(TABLES.PROFILES)
-    .update({ total_likes: current + 1 })
-    .eq('id', userId);
+  await supabaseAdmin.rpc('increment_profile_likes', { p_user_id: userId });
 }
 
 async function decrementProfileLikes(userId: string) {
   const supabaseAdmin = getSupabaseAdmin();
-  const { data: profile } = await supabaseAdmin
-    .from(TABLES.PROFILES)
-    .select('total_likes')
-    .eq('id', userId)
-    .single();
-
-  const current = profile?.total_likes || 0;
-  if (current > 0) {
-    await supabaseAdmin
-      .from(TABLES.PROFILES)
-      .update({ total_likes: current - 1 })
-      .eq('id', userId);
-  }
+  await supabaseAdmin.rpc('decrement_profile_likes', { p_user_id: userId });
 }
