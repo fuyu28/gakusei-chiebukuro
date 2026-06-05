@@ -1,4 +1,4 @@
-// ユーザー型
+// ログイン済みユーザー（自分の情報）
 export interface User {
   id: string;
   email: string;
@@ -7,6 +7,12 @@ export interface User {
   is_admin?: boolean;
   is_banned?: boolean;
   total_likes?: number;
+}
+
+// 公開プロフィール（投稿者情報など — メールアドレスを含まない）
+export interface PublicUser {
+  id: string;
+  display_name?: string;
 }
 
 // スレッド型
@@ -25,7 +31,7 @@ export interface Thread {
   coin_reward_amount?: number;
   coin_reward_paid?: boolean;
   coin_reward_paid_at?: string | null;
-  user?: User;
+  user?: PublicUser;
   subject_tag?: SubjectTag;
   answers_count?: number;
 }
@@ -39,7 +45,7 @@ export interface Answer {
   is_best_answer: boolean;
   created_at: string;
   updated_at: string;
-  user?: User;
+  user?: PublicUser;
   likes_count?: number;
   is_liked_by_me?: boolean;
 }
@@ -55,7 +61,7 @@ export interface PastExamFile {
   created_at: string;
   download_url?: string;
   subject_tag?: SubjectTag;
-  uploader?: User;
+  uploader?: PublicUser;
 }
 
 // 科目タグ型
@@ -158,7 +164,6 @@ export interface CoinRankingEntry {
   user_id: string;
   balance: number;
   display_name?: string | null;
-  email?: string;
 }
 
 export interface CoinRankingResponse {

@@ -64,7 +64,6 @@ export interface ThreadWithDetails extends Thread {
   subject_tag?: SubjectTag;
   user?: {
     id: string;
-    email: string;
     display_name?: string;
   };
   answers_count?: number;
@@ -73,7 +72,6 @@ export interface ThreadWithDetails extends Thread {
 export interface AnswerWithUser extends Answer {
   user?: {
     id: string;
-    email: string;
     display_name?: string;
   };
   likes_count?: number;
@@ -84,7 +82,6 @@ export interface PastExamFileWithRelations extends PastExamFile {
   subject_tag?: SubjectTag;
   uploader?: {
     id: string;
-    email: string;
     display_name?: string;
   };
   download_url?: string;

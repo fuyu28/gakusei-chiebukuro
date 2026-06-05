@@ -21,7 +21,7 @@ export async function listThreads(filters: ThreadFilters): Promise<ThreadWithDet
     .select(`
       *,
       subject_tag:subject_tags(id, name),
-      user:profiles(id, email, display_name),
+      user:profiles(id, display_name),
       answers(count)
     `);
 
@@ -57,7 +57,7 @@ export async function getThreadById(id: number): Promise<ThreadWithDetails> {
     .select(`
       *,
       subject_tag:subject_tags(id, name),
-      user:profiles(id, email, display_name)
+      user:profiles(id, display_name)
     `)
     .eq('id', id)
     .single();

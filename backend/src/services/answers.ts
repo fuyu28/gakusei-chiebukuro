@@ -52,7 +52,7 @@ export async function listAnswersByThread(threadId: number, currentUserId?: stri
     .from(TABLES.ANSWERS)
     .select(`
       *,
-      user:profiles(id, email, display_name)
+      user:profiles(id, display_name)
     `)
     .eq('thread_id', threadId)
     .order('is_best_answer', { ascending: false })

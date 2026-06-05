@@ -125,14 +125,14 @@ export async function listCoinEvents(userId: string, limit = 30): Promise<CoinEv
   return (data || []) as CoinEvent[];
 }
 
-export async function listCoinRanking(limit = 20): Promise<Array<{ user_id: string; balance: number; display_name?: string | null; email?: string }>> {
+export async function listCoinRanking(limit = 20): Promise<Array<{ user_id: string; balance: number; display_name?: string | null }>> {
   const supabaseAdmin = getSupabaseAdmin();
   const { data, error } = await supabaseAdmin
     .from(TABLES.COIN_BALANCES)
     .select(`
       user_id,
       balance,
-      user:profiles(id, display_name, email)
+      user:profiles(id, display_name)
     `)
     .order('balance', { ascending: false })
     .limit(limit);
@@ -145,6 +145,5 @@ export async function listCoinRanking(limit = 20): Promise<Array<{ user_id: stri
     user_id: row.user_id,
     balance: toNumber(row.balance),
     display_name: row.user?.display_name || undefined,
-    email: row.user?.email || undefined,
   }));
 }

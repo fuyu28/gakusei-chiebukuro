@@ -56,7 +56,7 @@ export async function listPastExamFiles(subjectTagId?: number): Promise<PastExam
     .select(`
       *,
       subject_tag:subject_tags(id, name),
-      uploader:profiles(id, email, display_name)
+      uploader:profiles(id, display_name)
     `)
     .order('created_at', { ascending: false });
 
@@ -144,7 +144,7 @@ export async function uploadPastExamFile(params: {
     .select(`
       *,
       subject_tag:subject_tags(id, name),
-      uploader:profiles(id, email, display_name)
+      uploader:profiles(id, display_name)
     `)
     .single();
 
