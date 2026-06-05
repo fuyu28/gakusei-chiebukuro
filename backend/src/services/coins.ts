@@ -141,7 +141,9 @@ export async function listCoinRanking(limit = 20): Promise<Array<{ user_id: stri
     throw new AppError(error.message, HTTP_STATUS.BAD_REQUEST);
   }
 
-  return (data || []).map((row: RankingRow) => ({
+  // Supabase の join は型推論が配列になるため RankingRow にキャスト
+  const rows = (data || []) as unknown as RankingRow[];
+  return rows.map((row) => ({
     user_id: row.user_id,
     balance: toNumber(row.balance),
     display_name: row.user?.display_name || undefined,

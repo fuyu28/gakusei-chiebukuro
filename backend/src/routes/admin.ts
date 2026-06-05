@@ -23,7 +23,7 @@ admin.get('/users', asyncHandler(async (c) => {
 
 admin.patch('/users/:id/ban', zValidator('json', banSchema), asyncHandler(async (c) => {
   const userId = c.req.param('id');
-  const { is_banned } = c.req.valid('json') as BanBody;
+  const { is_banned } = (c.req as any).valid('json') as BanBody;
 
   const user = await updateUserBanStatus(userId, is_banned);
 

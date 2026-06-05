@@ -21,7 +21,7 @@ subjectTags.get('/', asyncHandler(async (c) => {
 }));
 
 subjectTags.post('/', authMiddleware, adminMiddleware, zValidator('json', createTagSchema), asyncHandler(async (c) => {
-  const { name } = c.req.valid('json') as CreateTagBody;
+  const { name } = (c.req as any).valid('json') as CreateTagBody;
   const tag = await createSubjectTag(name);
   return c.json({ message: 'Subject tag created successfully', tag }, HTTP_STATUS.CREATED);
 }));

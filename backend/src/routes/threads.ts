@@ -58,7 +58,7 @@ threads.get('/:id', asyncHandler(async (c) => {
 
 threads.post('/', authMiddleware, zValidator('json', createThreadSchema), asyncHandler(async (c) => {
   const user = c.get('user') as AuthUser;
-  const { title, content, subject_tag_id, deadline, coin_stake } = c.req.valid('json') as CreateThreadBody;
+  const { title, content, subject_tag_id, deadline, coin_stake } = (c.req as any).valid('json') as CreateThreadBody;
   const sanitizedTitle = sanitizeUserText(title);
   const sanitizedContent = sanitizeUserText(content);
 
@@ -81,7 +81,7 @@ threads.post('/', authMiddleware, zValidator('json', createThreadSchema), asyncH
 threads.patch('/:id', authMiddleware, zValidator('json', updateThreadSchema), asyncHandler(async (c) => {
   const user = c.get('user') as AuthUser;
   const id = parseInt(c.req.param('id'));
-  const updates = c.req.valid('json') as UpdateThreadBody;
+  const updates = (c.req as any).valid('json') as UpdateThreadBody;
   const token = c.get('auth_token') as string;
 
   await verifyOwnership(TABLES.THREADS, id, user.id);

@@ -39,7 +39,7 @@ answers.get('/threads/:thread_id', optionalAuthMiddleware, asyncHandler(async (c
 answers.post('/', authMiddleware, zValidator('json', createAnswerSchema), asyncHandler(async (c) => {
   const user = c.get('user') as AuthUser;
   const token = c.get('auth_token') as string;
-  const { thread_id, content } = c.req.valid('json') as CreateAnswerBody;
+  const { thread_id, content } = (c.req as any).valid('json') as CreateAnswerBody;
   const sanitizedContent = sanitizeUserText(content);
 
   if (!sanitizedContent) {

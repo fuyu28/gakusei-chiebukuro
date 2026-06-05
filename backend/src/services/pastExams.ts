@@ -49,7 +49,8 @@ async function createSignedUrls(filePaths: string[]): Promise<Map<string, string
 
   return new Map(
     data
-      .filter((item) => item.signedUrl)
+      .filter((item): item is typeof item & { path: string; signedUrl: string } =>
+        typeof item.path === 'string' && Boolean(item.signedUrl))
       .map((item) => [item.path, item.signedUrl])
   );
 }

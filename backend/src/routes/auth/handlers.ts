@@ -28,7 +28,7 @@ function clearSessionCookies(c: Context) {
 
 export async function signupHandler(c: Context) {
   const supabase = getSupabase();
-  const { email, password, display_name } = c.req.valid('json') as SignupBody;
+  const { email, password, display_name } = (c.req as any).valid('json') as SignupBody;
   const { requireEmailVerification, emailRedirectTo } = getAuthConfig();
 
   if (!isAllowedEmailDomain(email)) {
@@ -80,7 +80,7 @@ export async function signupHandler(c: Context) {
 
 export async function loginHandler(c: Context) {
   const supabase = getSupabase();
-  const { email, password } = c.req.valid('json') as LoginBody;
+  const { email, password } = (c.req as any).valid('json') as LoginBody;
   const { requireEmailVerification, returnAccessToken } = getAuthConfig();
 
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
