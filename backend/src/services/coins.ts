@@ -10,7 +10,7 @@ type RpcReward = { reward: number | null; balance: number | null };
 type RankingRow = {
   user_id: string;
   balance: number | null;
-  user?: { id: string; display_name?: string | null; email?: string | null } | null;
+  user?: { id: string; display_name?: string | null } | null;
 };
 
 const toNumber = (value: number | string | null | undefined, fallback = 0): number => {
@@ -141,7 +141,7 @@ export async function listCoinRanking(limit = 20): Promise<Array<{ user_id: stri
     throw new AppError(error.message, HTTP_STATUS.BAD_REQUEST);
   }
 
-  return (data || []).map((row: any) => ({
+  return (data || []).map((row: RankingRow) => ({
     user_id: row.user_id,
     balance: toNumber(row.balance),
     display_name: row.user?.display_name || undefined,

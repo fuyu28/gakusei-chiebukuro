@@ -18,7 +18,6 @@ import {
 
 const threads = new Hono();
 
-// スレッド作成スキーマ
 const createThreadSchema = z.object({
   title: z.string().min(1).max(200),
   content: z.string().min(1),
@@ -27,13 +26,14 @@ const createThreadSchema = z.object({
   coin_stake: z.number().int().positive(),
 });
 
-// スレッド更新スキーマ
 const updateThreadSchema = z.object({
   status: z.enum(['open', 'resolved']).optional(),
   deadline: z.string().datetime().optional(),
 });
 
-// スレッド一覧取得
+type CreateThreadBody = z.infer<typeof createThreadSchema>;
+type UpdateThreadBody = z.infer<typeof updateThreadSchema>;
+
 threads.get('/', asyncHandler(async (c) => {
   const status = c.req.query('status') as 'open' | 'resolved' | undefined;
   const subject_tag_id = c.req.query('subject_tag_id');
@@ -50,18 +50,15 @@ threads.get('/', asyncHandler(async (c) => {
   return c.json({ threads: threadsList });
 }));
 
-// スレッド詳細取得
 threads.get('/:id', asyncHandler(async (c) => {
   const id = parseInt(c.req.param('id'));
-
   const thread = await getThreadById(id);
   return c.json({ thread });
 }));
 
-// スレッド作成
-threads.post('/', authMiddleware, zValidator('json', createThreadSchema), asyncHandler(async (c: any) => {
+threads.post('/', authMiddleware, zValidator('json', createThreadSchema), asyncHandler(async (c) => {
   const user = c.get('user') as AuthUser;
-  const { title, content, subject_tag_id, deadline, coin_stake } = c.req.valid('json');
+  const { title, content, subject_tag_id, deadline, coin_stake } = c.req.valid('json') as CreateThreadBody;
   const sanitizedTitle = sanitizeUserText(title);
   const sanitizedContent = sanitizeUserText(content);
 
@@ -78,32 +75,26 @@ threads.post('/', authMiddleware, zValidator('json', createThreadSchema), asyncH
     coin_stake,
   });
 
-  return c.json({ message: 'Thread created successfully', thread }, HTTP_STATUS.CREATED as any);
+  return c.json({ message: 'Thread created successfully', thread }, HTTP_STATUS.CREATED);
 }));
 
-// スレッド更新
-threads.patch('/:id', authMiddleware, zValidator('json', updateThreadSchema), asyncHandler(async (c: any) => {
+threads.patch('/:id', authMiddleware, zValidator('json', updateThreadSchema), asyncHandler(async (c) => {
   const user = c.get('user') as AuthUser;
   const id = parseInt(c.req.param('id'));
-  const updates: any = c.req.valid('json');
+  const updates = c.req.valid('json') as UpdateThreadBody;
   const token = c.get('auth_token') as string;
 
-  // スレッドの所有者確認
   await verifyOwnership(TABLES.THREADS, id, user.id);
-
-  // 更新
   const updatedThread = await updateThreadById(id, updates, token);
 
   return c.json({ message: 'Thread updated successfully', thread: updatedThread });
 }));
 
-// スレッド削除
 threads.delete('/:id', authMiddleware, asyncHandler(async (c) => {
   const user = c.get('user') as AuthUser;
   const id = parseInt(c.req.param('id'));
   const token = c.get('auth_token') as string;
 
-  // スレッドの所有者確認
   await verifyOwnership(TABLES.THREADS, id, user.id);
   await deleteThreadById(id, token);
 

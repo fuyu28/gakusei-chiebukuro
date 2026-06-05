@@ -9,24 +9,21 @@ import { adminMiddleware } from '../middleware/admin';
 
 const subjectTags = new Hono();
 
-// 科目タグ作成スキーマ
 const createTagSchema = z.object({
   name: z.string().min(1).max(100),
 });
 
-// 科目タグ一覧取得
+type CreateTagBody = z.infer<typeof createTagSchema>;
+
 subjectTags.get('/', asyncHandler(async (c) => {
   const tags = await listSubjectTags();
   return c.json({ tags });
 }));
 
-// 科目タグ作成（管理者のみ）
-subjectTags.post('/', authMiddleware, adminMiddleware, zValidator('json', createTagSchema), asyncHandler(async (c: any) => {
-  const { name } = c.req.valid('json');
-
+subjectTags.post('/', authMiddleware, adminMiddleware, zValidator('json', createTagSchema), asyncHandler(async (c) => {
+  const { name } = c.req.valid('json') as CreateTagBody;
   const tag = await createSubjectTag(name);
-
-  return c.json({ message: 'Subject tag created successfully', tag }, HTTP_STATUS.CREATED as any);
+  return c.json({ message: 'Subject tag created successfully', tag }, HTTP_STATUS.CREATED);
 }));
 
 export default subjectTags;

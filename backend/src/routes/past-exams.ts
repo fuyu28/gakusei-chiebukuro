@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { handleError, AppError } from '../utils/errors';
+import { asyncHandler, AppError } from '../utils/errors';
 import { listPastExamFiles, uploadPastExamFile, deletePastExamFileById } from '../services/pastExams';
 import { authMiddleware } from '../middleware/auth';
 import { adminMiddleware } from '../middleware/admin';
@@ -16,28 +16,23 @@ function parseSubjectTagId(raw: unknown): number {
 
 function ensureFiles(input: unknown): File[] {
   const files = Array.isArray(input) ? input : [input];
-
   if (files.length === 0 || files.some((item) => !(item instanceof File))) {
     throw new AppError(ERROR_MESSAGES.FILE_REQUIRED, HTTP_STATUS.BAD_REQUEST);
   }
-
   return files as File[];
 }
 
 function parseIdParam(idParam: string, errorMessage: string): number {
   const parsed = parseInt(idParam, 10);
-
   if (Number.isNaN(parsed)) {
     throw new AppError(errorMessage, HTTP_STATUS.BAD_REQUEST);
   }
-
   return parsed;
 }
 
 const pastExams = new Hono<{ Variables: { user: AuthUser } }>();
-pastExams.onError(handleError);
-// 参考資料一覧取得（科目でフィルタ可能）
-pastExams.get('/', async (c) => {
+
+pastExams.get('/', asyncHandler(async (c) => {
   const subjectTagParam = c.req.query('subject_tag_id');
   const subjectTagId = subjectTagParam ? parseInt(subjectTagParam, 10) : undefined;
 
@@ -47,10 +42,9 @@ pastExams.get('/', async (c) => {
 
   const files = await listPastExamFiles(subjectTagId);
   return c.json({ files });
-});
+}));
 
-// 参考資料アップロード
-pastExams.post('/', authMiddleware, async (c) => {
+pastExams.post('/', authMiddleware, asyncHandler(async (c) => {
   const user = c.get('user');
   const formData = await c.req.parseBody();
 
@@ -70,13 +64,12 @@ pastExams.post('/', authMiddleware, async (c) => {
   );
 
   return c.json({ message: 'Past exam uploaded successfully', files: uploadedFiles }, HTTP_STATUS.CREATED);
-});
+}));
 
-pastExams.delete('/:id', authMiddleware, adminMiddleware, async (c) => {
+pastExams.delete('/:id', authMiddleware, adminMiddleware, asyncHandler(async (c) => {
   const pastExamId = parseIdParam(c.req.param('id'), ERROR_MESSAGES.FAILED_TO_DELETE_PAST_EXAM);
   await deletePastExamFileById(pastExamId);
-
   return c.json({ message: 'Past exam deleted successfully' });
-});
+}));
 
 export default pastExams;

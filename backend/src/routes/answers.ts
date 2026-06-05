@@ -21,13 +21,13 @@ import { rewardBestAnswer } from '../services/coins';
 
 const answers = new Hono();
 
-// 回答作成スキーマ
 const createAnswerSchema = z.object({
   thread_id: z.number().int().positive(),
   content: z.string().min(1),
 });
 
-// スレッドの回答一覧取得
+type CreateAnswerBody = z.infer<typeof createAnswerSchema>;
+
 answers.get('/threads/:thread_id', optionalAuthMiddleware, asyncHandler(async (c) => {
   const thread_id = parseInt(c.req.param('thread_id'));
   const user = c.get('user') as AuthUser | undefined;
@@ -36,31 +36,26 @@ answers.get('/threads/:thread_id', optionalAuthMiddleware, asyncHandler(async (c
   return c.json({ answers: answersList });
 }));
 
-// 回答投稿
-answers.post('/', authMiddleware, zValidator('json', createAnswerSchema), asyncHandler(async (c: any) => {
+answers.post('/', authMiddleware, zValidator('json', createAnswerSchema), asyncHandler(async (c) => {
   const user = c.get('user') as AuthUser;
   const token = c.get('auth_token') as string;
-  const { thread_id, content } = c.req.valid('json');
+  const { thread_id, content } = c.req.valid('json') as CreateAnswerBody;
   const sanitizedContent = sanitizeUserText(content);
 
   if (!sanitizedContent) {
     throw new AppError('Content is required', HTTP_STATUS.BAD_REQUEST);
   }
 
-  // スレッドの存在確認と締切チェック
   const thread = await getThreadById(thread_id);
 
-  // 締切チェック
   if (thread.deadline && new Date(thread.deadline) < new Date()) {
     throw new AppError(ERROR_MESSAGES.DEADLINE_PASSED, HTTP_STATUS.BAD_REQUEST);
   }
 
-  // 解決済みチェック
   if (thread.status === 'resolved') {
     throw new AppError(ERROR_MESSAGES.THREAD_RESOLVED, HTTP_STATUS.BAD_REQUEST);
   }
 
-  // 回答を投稿
   const answer = await createAnswerRecord({
     thread_id,
     content: sanitizedContent,
@@ -68,18 +63,14 @@ answers.post('/', authMiddleware, zValidator('json', createAnswerSchema), asyncH
     token,
   });
 
-  return c.json({ message: 'Answer created successfully', answer }, HTTP_STATUS.CREATED as any);
+  return c.json({ message: 'Answer created successfully', answer }, HTTP_STATUS.CREATED);
 }));
 
-// ベストアンサー選択
 answers.patch('/:id/best', authMiddleware, asyncHandler(async (c) => {
   const user = c.get('user') as AuthUser;
   const answer_id = parseInt(c.req.param('id'));
 
-  // 回答の取得
   const answer = await getAnswerById(answer_id);
-
-  // スレッドの所有者確認
   const threadOwner = await getThreadOwner(answer.thread_id);
 
   if (threadOwner.user_id !== user.id) {
@@ -92,7 +83,6 @@ answers.patch('/:id/best', authMiddleware, asyncHandler(async (c) => {
     selector_user_id: user.id,
   });
 
-  // 最新状態の回答を返す（is_best_answer 反映用）
   const updatedAnswer = await getAnswerById(answer_id);
 
   return c.json({
@@ -103,40 +93,32 @@ answers.patch('/:id/best', authMiddleware, asyncHandler(async (c) => {
   });
 }));
 
-// 回答削除
 answers.delete('/:id', authMiddleware, asyncHandler(async (c) => {
   const user = c.get('user') as AuthUser;
   const answer_id = parseInt(c.req.param('id'));
   const token = c.get('auth_token') as string;
 
-  // 回答の所有者確認
   await verifyOwnership(TABLES.ANSWERS, answer_id, user.id);
-
-  // 削除
   await deleteAnswerById(answer_id, token);
 
   return c.json({ message: 'Answer deleted successfully' });
 }));
 
-// いいね
 answers.post('/:id/like', authMiddleware, asyncHandler(async (c) => {
   const user = c.get('user') as AuthUser;
   const answer_id = parseInt(c.req.param('id'));
   const token = c.get('auth_token') as string;
 
   const likeState = await likeAnswer(answer_id, user.id, token);
-
   return c.json({ message: 'Liked successfully', ...likeState });
 }));
 
-// いいね解除
 answers.delete('/:id/like', authMiddleware, asyncHandler(async (c) => {
   const user = c.get('user') as AuthUser;
   const answer_id = parseInt(c.req.param('id'));
   const token = c.get('auth_token') as string;
 
   const likeState = await unlikeAnswer(answer_id, user.id, token);
-
   return c.json({ message: 'Unliked successfully', ...likeState });
 }));
 

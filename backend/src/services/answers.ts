@@ -18,7 +18,6 @@ async function getLikesState(answerIds: number[], currentUserId?: string): Promi
     return { likeCountMap, likedAnswerIds };
   }
 
-  // 全体のいいね件数を集計
   const { data: allLikes, error: allLikesError } = await supabase
     .from(TABLES.ANSWER_LIKES)
     .select('answer_id')
@@ -28,11 +27,10 @@ async function getLikesState(answerIds: number[], currentUserId?: string): Promi
     throw new AppError(allLikesError.message, HTTP_STATUS.BAD_REQUEST);
   }
 
-  allLikes?.forEach((l: any) => {
+  allLikes?.forEach((l: { answer_id: number }) => {
     likeCountMap.set(l.answer_id, (likeCountMap.get(l.answer_id) || 0) + 1);
   });
 
-  // ログイン済みユーザーのいいね済み一覧
   if (currentUserId) {
     const { data: likes } = await supabase
       .from(TABLES.ANSWER_LIKES)
@@ -40,7 +38,7 @@ async function getLikesState(answerIds: number[], currentUserId?: string): Promi
       .eq('user_id', currentUserId)
       .in('answer_id', answerIds);
 
-    likes?.forEach((l: any) => likedAnswerIds.add(l.answer_id));
+    likes?.forEach((l: { answer_id: number }) => likedAnswerIds.add(l.answer_id));
   }
 
   return { likeCountMap, likedAnswerIds };
@@ -62,7 +60,7 @@ export async function listAnswersByThread(threadId: number, currentUserId?: stri
     throw new AppError(error.message, HTTP_STATUS.BAD_REQUEST);
   }
 
-  const answers = (data as any[]) || [];
+  const answers = (data || []) as AnswerWithUser[];
   const answerIds = answers.map(a => a.id);
   const { likeCountMap, likedAnswerIds } = await getLikesState(answerIds, currentUserId);
 

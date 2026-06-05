@@ -1,6 +1,3 @@
-/**
- * HTTPステータスコード定数
- */
 export const HTTP_STATUS = {
   OK: 200,
   CREATED: 201,
@@ -13,9 +10,6 @@ export const HTTP_STATUS = {
   INTERNAL_SERVER_ERROR: 500,
 } as const;
 
-/**
- * HTTPエラーメッセージ定数
- */
 export const ERROR_MESSAGES = {
   THREAD_NOT_FOUND: 'Thread not found',
   ANSWER_NOT_FOUND: 'Answer not found',

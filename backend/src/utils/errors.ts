@@ -2,9 +2,6 @@ import { Context, type ErrorHandler } from 'hono';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import { HTTP_STATUS } from '../constants/http';
 
-/**
- * カスタムエラークラス
- */
 export class AppError extends Error {
   constructor(
     message: string,
@@ -15,9 +12,6 @@ export class AppError extends Error {
   }
 }
 
-/**
- * 非同期ルートハンドラーをラップしてエラーハンドリングを共通化
- */
 export function asyncHandler<T extends Context = Context>(
   fn: (c: T) => Promise<Response>
 ) {
@@ -25,14 +19,11 @@ export function asyncHandler<T extends Context = Context>(
     try {
       return await fn(c);
     } catch (error) {
-      console.error('Request error:', error);
-
       if (error instanceof AppError) {
-        return c.json({ error: error.message }, error.status as any);
+        return c.json({ error: error.message }, error.status);
       }
-
       const message = error instanceof Error ? error.message : 'An error occurred';
-      return c.json({ error: message }, HTTP_STATUS.INTERNAL_SERVER_ERROR as any);
+      return c.json({ error: message }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
     }
   };
 }

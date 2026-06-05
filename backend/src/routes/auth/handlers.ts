@@ -8,6 +8,11 @@ import { ensureUserProfile } from '../../services/profiles';
 import { AppError } from '../../utils/errors';
 import { HTTP_STATUS } from '../../constants/http';
 import type { AuthUser } from '../../types';
+import type { z } from 'zod';
+import type { signupSchema, loginSchema } from './schemas';
+
+type SignupBody = z.infer<typeof signupSchema>;
+type LoginBody = z.infer<typeof loginSchema>;
 
 function setSessionCookies(c: Context, accessToken?: string | null, expiresIn?: number | null) {
   if (!accessToken) return;
@@ -21,9 +26,9 @@ function clearSessionCookies(c: Context) {
   deleteCookie(c, getCsrfCookieName(), getCsrfCookieOptions());
 }
 
-export async function signupHandler(c: any) {
+export async function signupHandler(c: Context) {
   const supabase = getSupabase();
-  const { email, password, display_name } = c.req.valid('json');
+  const { email, password, display_name } = c.req.valid('json') as SignupBody;
   const { requireEmailVerification, emailRedirectTo } = getAuthConfig();
 
   if (!isAllowedEmailDomain(email)) {
@@ -73,15 +78,12 @@ export async function signupHandler(c: any) {
   });
 }
 
-export async function loginHandler(c: any) {
+export async function loginHandler(c: Context) {
   const supabase = getSupabase();
-  const { email, password } = c.req.valid('json');
+  const { email, password } = c.req.valid('json') as LoginBody;
   const { requireEmailVerification, returnAccessToken } = getAuthConfig();
 
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
     throw new AppError(error.message, HTTP_STATUS.UNAUTHORIZED);
