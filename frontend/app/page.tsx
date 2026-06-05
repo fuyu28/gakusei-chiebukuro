@@ -200,7 +200,7 @@ export default function Home() {
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-                  <span>{thread.user?.display_name || thread.user?.email}</span>
+                  <span>{thread.user?.display_name}</span>
                   <span>投稿: {formatDate(thread.created_at)}</span>
                   <Badge variant="outline">{thread.answers_count || 0}件の回答</Badge>
                 </div>

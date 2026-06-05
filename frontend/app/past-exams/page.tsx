@@ -305,7 +305,7 @@ export default function PastExamsPage() {
                         {formatFileSize(file.file_size)} ・ {formatDate(file.created_at)}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        アップロード: {file.uploader?.display_name || file.uploader?.email || '不明'}
+                        アップロード: {file.uploader?.display_name || '不明'}
                       </p>
                     </div>
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

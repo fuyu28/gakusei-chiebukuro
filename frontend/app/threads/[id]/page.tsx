@@ -249,7 +249,7 @@ export default function ThreadDetailPage() {
     ? Math.max(stake - fee, 0)
     : Number(thread.coin_reward_amount ?? 0);
 
-  const userInitial = (thread.user?.display_name || thread.user?.email || '?')
+  const userInitial = (thread.user?.display_name || '?')
     .slice(0, 1)
     .toUpperCase();
 
@@ -281,7 +281,7 @@ export default function ThreadDetailPage() {
                 <Avatar className="h-9 w-9">
                   <AvatarFallback>{userInitial}</AvatarFallback>
                 </Avatar>
-                <span>{thread.user?.display_name || thread.user?.email}</span>
+                <span>{thread.user?.display_name}</span>
               </div>
               <span>投稿: {formatDate(thread.created_at)}</span>
             </div>
@@ -352,7 +352,7 @@ export default function ThreadDetailPage() {
           ) : (
             answers.map((answer) => {
               const isOwner = currentUser && currentUser.id === answer.user_id;
-              const answerInitial = (answer.user?.display_name || answer.user?.email || '?')
+              const answerInitial = (answer.user?.display_name || '?')
                 .slice(0, 1)
                 .toUpperCase();
               return (
@@ -369,7 +369,7 @@ export default function ThreadDetailPage() {
                       </Avatar>
                       <div>
                         <div className="font-semibold text-foreground">
-                          {answer.user?.display_name || answer.user?.email}
+                          {answer.user?.display_name}
                         </div>
                         <div>{formatDate(answer.created_at)}</div>
                       </div>
